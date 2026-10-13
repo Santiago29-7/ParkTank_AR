@@ -125,6 +125,9 @@ MonoBehaviour:
   muzzleFlashVFX: {fileID: 5460789273636381479}
   audioSource: {fileID: 7851936444993061872}
   shootSFX: {fileID: 8300000, guid: cb7aac329a97b534cb4a2c7c0c2b7a50, type: 3}
+  engineStartSFX: {fileID: 8300000, guid: c0ae39e237edb4a4fa0dec9cae781dce, type: 3}
+  engineIdleSFX: {fileID: 8300000, guid: 1b2e0d87ef5742a44b4d7f03567fd20d, type: 3}
+  engineDrivingSFX: {fileID: 8300000, guid: 672fd930d65acce469f438f48179c9d0, type: 3}
   trajectoryLine: {fileID: 3001212383715273948}
   trajectoryPoints: 30
   timeBetweenPoints: 0.05

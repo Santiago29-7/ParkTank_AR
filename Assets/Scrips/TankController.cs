@@ -1,5 +1,6 @@
+using System.Collections;
 using UnityEngine;
-using UnityEngine.UI; // Requerido para la imagen de recarga en el Canvas
+using UnityEngine.UI;
 
 public class TankController : MonoBehaviour
 {
@@ -14,18 +15,23 @@ public class TankController : MonoBehaviour
     public GameObject bulletPrefab;
     public Transform cannonMuzzle;
     public float bulletForce = 25f;
-    public float reloadTime = 6.0f;       // Tiempo de recarga ajustado a 6 segundos
-    private float nextFireTime = 0f;     // Control interno del tiempo para el próximo disparo
-    private float lastFireTime = -999f;  // Registro del momento del último disparo
+    public float reloadTime = 6.0f;
+    private float nextFireTime = 0f;
+    private float lastFireTime = -999f;
 
     [Header("UI de Recarga")]
-    public Image reloadOverlayImage;      // Referencia a la imagen radial del joystick
+    public Image reloadOverlayImage;
 
-    [Header("Efectos de Disparo (VFX / SFX)")]
-    public MuzzleFlash3D muzzleFlash3D;   // Referencia al fogonazo 3D
-    public ParticleSystem muzzleFlashVFX; // Partículas adicionales (opcional)
+    [Header("Efectos y Sonidos (VFX / SFX)")]
+    public MuzzleFlash3D muzzleFlash3D;
+    public ParticleSystem muzzleFlashVFX;
     public AudioSource audioSource;
     public AudioClip shootSFX;
+
+    [Header("Sonidos de Motor")]
+    public AudioClip engineStartSFX;      // Clip de arranque (se juega 1 vez)
+    public AudioClip engineIdleSFX;       // Clip de motor encendido en reposo (loop)
+    public AudioClip engineDrivingSFX;    // Clip de motor en marcha (loop)
 
     [Header("Guía de Trayectoria")]
     public LineRenderer trajectoryLine;
@@ -37,6 +43,9 @@ public class TankController : MonoBehaviour
     public float turnSpeed = 2f;
     public float turretRotateSpeed = 40f;
 
+    // Control de estado interno
+    private bool isEngineReady = false;
+    private bool isMoving = false;
     private Camera mainCamera;
 
     void Start()
@@ -59,6 +68,35 @@ public class TankController : MonoBehaviour
             reloadOverlayImage.fillAmount = 0f;
             reloadOverlayImage.enabled = false;
         }
+
+        // Iniciar secuencia de encendido
+        StartCoroutine(StartEngineSequence());
+    }
+
+    IEnumerator StartEngineSequence()
+    {
+        isEngineReady = false;
+
+        // 1. Reproducir arranque
+        if (engineStartSFX != null && audioSource != null)
+        {
+            audioSource.clip = engineStartSFX;
+            audioSource.loop = false;
+            audioSource.Play();
+
+            // Esperar duración exacta del clip de arranque
+            yield return new WaitForSeconds(engineStartSFX.length);
+        }
+
+        // 2. Habilitar tanque y pasar a sonido de motor en reposo (Idle)
+        isEngineReady = true;
+
+        if (engineIdleSFX != null && audioSource != null)
+        {
+            audioSource.clip = engineIdleSFX;
+            audioSource.loop = true;
+            audioSource.Play();
+        }
     }
 
     void OnDisable()
@@ -76,22 +114,54 @@ public class TankController : MonoBehaviour
             AutoConnectJoysticks();
         }
 
+        // Si el motor aún no termina de arrancar, bloqueamos movimiento
+        if (!isEngineReady)
+        {
+            if (trajectoryLine != null) trajectoryLine.enabled = false;
+            return;
+        }
+
         MoveChassis();
         RotateTurret();
         UpdateTrajectory();
-        UpdateReloadUI(); // Actualiza la animación de recarga en el joystick
+        UpdateReloadUI();
+        HandleEngineAudio();
+    }
+
+    void HandleEngineAudio()
+    {
+        if (audioSource == null) return;
+
+        if (isMoving)
+        {
+            // Si se está moviendo y no está sonando el audio de marcha
+            if (engineDrivingSFX != null && audioSource.clip != engineDrivingSFX)
+            {
+                audioSource.clip = engineDrivingSFX;
+                audioSource.loop = true;
+                audioSource.Play();
+            }
+        }
+        else
+        {
+            // Si está detenido y no está sonando el audio de reposo (Idle)
+            if (engineIdleSFX != null && audioSource.clip != engineIdleSFX)
+            {
+                audioSource.clip = engineIdleSFX;
+                audioSource.loop = true;
+                audioSource.Play();
+            }
+        }
     }
 
     void AutoConnectJoysticks()
     {
-        // Conectar Joystick Izquierdo
         if (leftJoystick == null)
         {
             GameObject leftObj = GameObject.Find("LeftJoystick");
             if (leftObj != null) leftJoystick = leftObj.GetComponent<SimpleJoystick>();
         }
 
-        // Conectar Joystick Derecho
         if (rightJoystick == null)
         {
             GameObject rightObj = GameObject.Find("RightJoystick");
@@ -108,7 +178,6 @@ public class TankController : MonoBehaviour
             }
         }
 
-        // Conectar la imagen de recarga automáticamente
         if (reloadOverlayImage == null)
         {
             GameObject overlayObj = GameObject.Find("ReloadOverlay");
@@ -118,7 +187,6 @@ public class TankController : MonoBehaviour
             }
         }
 
-        // Conectar el script del fogonazo 3D automáticamente
         if (muzzleFlash3D == null && cannonMuzzle != null)
         {
             muzzleFlash3D = cannonMuzzle.GetComponentInChildren<MuzzleFlash3D>(true);
@@ -133,7 +201,10 @@ public class TankController : MonoBehaviour
         float moveZ = leftJoystick.Vertical;
         Vector3 inputDir = new Vector3(moveX, 0f, moveZ);
 
-        if (inputDir.magnitude > 0.05f)
+        // Detectar si hay entrada en el joystick
+        isMoving = inputDir.magnitude > 0.05f;
+
+        if (isMoving)
         {
             Vector3 camForward = mainCamera.transform.forward;
             Vector3 camRight = mainCamera.transform.right;
@@ -192,7 +263,6 @@ public class TankController : MonoBehaviour
         float turretZ = rightJoystick.Vertical;
         Vector3 inputDir = new Vector3(turretX, 0f, turretZ);
 
-        // Mostrar la guía solo si se mantiene apuntando Y el cañón ya terminó de recargar
         if (inputDir.magnitude > 0.1f && Time.time >= nextFireTime)
         {
             trajectoryLine.enabled = true;
@@ -250,7 +320,6 @@ public class TankController : MonoBehaviour
             reloadOverlayImage.enabled = true;
             float timePassed = Time.time - lastFireTime;
 
-            // La sombra empieza totalmente cubierta (1.0) y se vacía en sentido horario hacia 0.0
             float progress = 1f - (timePassed / reloadTime);
             reloadOverlayImage.fillAmount = Mathf.Clamp01(progress);
         }
@@ -263,7 +332,8 @@ public class TankController : MonoBehaviour
 
     void Shoot()
     {
-        // 1. Verificar si el cañón está en recarga
+        if (!isEngineReady) return;
+
         if (Time.time < nextFireTime)
         {
             Debug.Log($"Cañón recargando... Tiempo restante: {(nextFireTime - Time.time):F1}s");
@@ -276,15 +346,29 @@ public class TankController : MonoBehaviour
             return;
         }
 
-        // 2. Registrar el momento exacto del disparo y la hora de la próxima recarga
         lastFireTime = Time.time;
         nextFireTime = Time.time + reloadTime;
 
         if (trajectoryLine != null)
             trajectoryLine.enabled = false;
 
-        // 3. Instanciar y lanzar proyectil
         GameObject bullet = Instantiate(bulletPrefab, cannonMuzzle.position, cannonMuzzle.rotation);
+
+        Collider bulletCollider = bullet.GetComponent<Collider>();
+        Collider[] tankColliders = GetComponentsInChildren<Collider>();
+        if (bulletCollider != null)
+        {
+            foreach (Collider col in tankColliders)
+            {
+                Physics.IgnoreCollision(bulletCollider, col);
+            }
+        }
+
+        TankBullet bulletScript = bullet.GetComponent<TankBullet>();
+        if (bulletScript != null)
+        {
+            bulletScript.SetGroundYLevel(transform.position.y - 0.03f);
+        }
 
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
         if (rb != null)
@@ -292,19 +376,9 @@ public class TankController : MonoBehaviour
             rb.AddForce(cannonMuzzle.forward * bulletForce, ForceMode.Impulse);
         }
 
-        // 4. Activar el fogonazo 3D
-        if (muzzleFlash3D != null)
-        {
-            muzzleFlash3D.TriggerFlash();
-        }
+        if (muzzleFlash3D != null) muzzleFlash3D.TriggerFlash();
+        if (muzzleFlashVFX != null) muzzleFlashVFX.Play();
 
-        // 5. Partículas opcionales de destello en la boca del cañón
-        if (muzzleFlashVFX != null)
-        {
-            muzzleFlashVFX.Play();
-        }
-
-        // 6. Sonido de disparo
         if (audioSource != null && shootSFX != null)
         {
             audioSource.PlayOneShot(shootSFX);
