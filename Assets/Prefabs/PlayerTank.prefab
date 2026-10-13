@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &604386562255505763
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6980671145682384314}
+  m_Layer: 0
+  m_Name: CannonMuzzle
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6980671145682384314
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 604386562255505763}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.02, y: 0.48, z: 7.6}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6179012380635202565}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1240975469787673976
 GameObject:
   m_ObjectHideFlags: 0
@@ -25,7 +56,7 @@ Transform:
   m_GameObject: {fileID: 1240975469787673976}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.615, y: 0, z: 4.84279}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -81,9 +112,12 @@ MonoBehaviour:
   leftJoystick: {fileID: 0}
   rightJoystick: {fileID: 0}
   torretaPivot: {fileID: 6179012380635202565}
-  moveSpeed: 2
-  turnSpeed: 80
-  turretRotateSpeed: 110
+  bulletPrefab: {fileID: 6594973177493260951, guid: 93e2d26bf7a09f44a8dd448dafa29fbd, type: 3}
+  cannonMuzzle: {fileID: 1801249123282032937, guid: 36961d492ba78ee42a7d571c05dfdd6c, type: 3}
+  bulletForce: 25
+  moveSpeed: 1
+  turnSpeed: 1.5
+  turretRotateSpeed: 60
 --- !u!1 &3286557502817541166
 GameObject:
   m_ObjectHideFlags: 0
@@ -299,10 +333,11 @@ Transform:
   m_GameObject: {fileID: 6708466089398656553}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.632, y: 1.52, z: 4.61}
+  m_LocalPosition: {x: 0, y: 1.52, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2223149195504920856}
+  - {fileID: 6980671145682384314}
   m_Father: {fileID: 6405111881655966609}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

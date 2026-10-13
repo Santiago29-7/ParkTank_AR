@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class SimpleJoystick : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler
 {
@@ -8,48 +9,103 @@ public class SimpleJoystick : MonoBehaviour, IPointerDownHandler, IDragHandler, 
     public RectTransform handleNode;
 
     private Vector2 inputVector = Vector2.zero;
+    private Canvas parentCanvas;
+    private int activePointerId = -100;
 
-    // Propiedades públicas para leer el movimiento desde TankController
+    // Evento que se dispara al soltar el joystick tras apuntar
+    public event System.Action OnJoystickReleased;
+
     public float Horizontal => inputVector.x;
     public float Vertical => inputVector.y;
 
+    void Awake()
+    {
+        Input.multiTouchEnabled = true;
+
+        if (bgNode == null)
+            bgNode = GetComponent<RectTransform>();
+
+        parentCanvas = GetComponentInParent<Canvas>();
+
+        if (handleNode != null)
+        {
+            Image handleImage = handleNode.GetComponent<Image>();
+            if (handleImage != null)
+                handleImage.raycastTarget = false;
+        }
+    }
+
     public void OnPointerDown(PointerEventData eventData)
     {
-        OnDrag(eventData);
+        if (activePointerId == -100)
+        {
+            activePointerId = eventData.pointerId;
+            OnDrag(eventData);
+        }
     }
 
     public void OnDrag(PointerEventData eventData)
     {
-        Vector2 position;
+        if (eventData.pointerId != activePointerId) return;
+
+        Camera cam = null;
+        if (parentCanvas != null && parentCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
+        {
+            cam = parentCanvas.worldCamera;
+        }
+
         if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
             bgNode,
             eventData.position,
-            eventData.pressEventCamera,
-            out position))
+            cam,
+            out Vector2 localPoint))
         {
-            position.x = (position.x / bgNode.sizeDelta.x);
-            position.y = (position.y / bgNode.sizeDelta.y);
+            Vector2 localCenter = new Vector2(
+                (0.5f - bgNode.pivot.x) * bgNode.rect.width,
+                (0.5f - bgNode.pivot.y) * bgNode.rect.height
+            );
 
-            inputVector = new Vector2(position.x * 2, position.y * 2);
-            inputVector = (inputVector.magnitude > 1.0f) ? inputVector.normalized : inputVector;
+            Vector2 positionFromCenter = localPoint - localCenter;
+            float radius = bgNode.rect.width / 2f;
 
-            // Desplazar la perilla visual
+            inputVector = positionFromCenter / radius;
+
+            if (inputVector.magnitude > 1.0f)
+            {
+                inputVector = inputVector.normalized;
+            }
+
             if (handleNode != null)
             {
-                handleNode.anchoredPosition = new Vector2(
-                    inputVector.x * (bgNode.sizeDelta.x / 3f),
-                    inputVector.y * (bgNode.sizeDelta.y / 3f)
-                );
+                handleNode.anchoredPosition = inputVector * radius;
             }
         }
     }
 
     public void OnPointerUp(PointerEventData eventData)
     {
+        if (eventData.pointerId == activePointerId)
+        {
+            // Solo disparar si el usuario estaba tirando de la palanca (umbral mínimo)
+            if (inputVector.magnitude > 0.2f)
+            {
+                OnJoystickReleased?.Invoke();
+            }
+
+            ResetJoystick();
+        }
+    }
+
+    private void ResetJoystick()
+    {
+        activePointerId = -100;
         inputVector = Vector2.zero;
         if (handleNode != null)
-        {
             handleNode.anchoredPosition = Vector2.zero;
-        }
+    }
+
+    void OnDisable()
+    {
+        ResetJoystick();
     }
 }
