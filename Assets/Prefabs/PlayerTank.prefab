@@ -77,6 +77,8 @@ GameObject:
   - component: {fileID: 3320903125973667964}
   - component: {fileID: 3001212383715273948}
   - component: {fileID: 7851936444993061872}
+  - component: {fileID: 107771261855614791}
+  - component: {fileID: 2700515229082241842}
   m_Layer: 0
   m_Name: PlayerTank
   m_TagString: Untagged
@@ -341,6 +343,41 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &107771261855614791
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1469825721271101976}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70490a324694d344b93300b558548816, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TankHealth
+  maxHealth: 100
+  currentHealth: 0
+--- !u!65 &2700515229082241842
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1469825721271101976}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 4.606867, y: 3.335474, z: 9.298024}
+  m_Center: {x: -0.0054978766, y: 1.3470834, z: -0.010588393}
 --- !u!1 &3286557502817541166
 GameObject:
   m_ObjectHideFlags: 0

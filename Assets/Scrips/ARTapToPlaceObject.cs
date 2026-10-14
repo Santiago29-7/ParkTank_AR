@@ -6,12 +6,17 @@ using UnityEngine.XR.ARSubsystems;
 [RequireComponent(typeof(ARRaycastManager))]
 public class ARTapToPlaceObject : MonoBehaviour
 {
-    [Header("Prefab del Tanque")]
-    public GameObject tankPrefab;
+    [Header("Prefabs a Generar")]
+    public GameObject objectToPlace;   // Tu Prefab PlayerTank
+    public GameObject powerUpBoxPrefab; // Tu Prefab PowerUpBox
 
-    private GameObject spawnedTank;
+    [Header("Configuración de Autocolocación")]
+    public bool autoPlaceOnPlaneDetected = true;
+
     private ARRaycastManager raycastManager;
+    private GameObject spawnedObject;
     private static List<ARRaycastHit> hits = new List<ARRaycastHit>();
+    private bool hasSpawned = false;
 
     void Awake()
     {
@@ -20,57 +25,43 @@ public class ARTapToPlaceObject : MonoBehaviour
 
     void Update()
     {
-        // Detectar si se toca la pantalla o se hace clic
-        if (GetTouchPosition(out Vector2 touchPosition))
-        {
-            if (raycastManager.Raycast(touchPosition, hits, TrackableType.PlaneWithinPolygon))
-            {
-                Pose hitPose = hits[0].pose;
+        if (hasSpawned) return;
 
-                if (spawnedTank == null)
-                {
-                    if (tankPrefab != null)
-                    {
-                        spawnedTank = Instantiate(tankPrefab, hitPose.position, hitPose.rotation);
-                    }
-                    else
-                    {
-                        // Si por alguna razón el prefab falla, crea un cubo rojo de prueba
-                        spawnedTank = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                        spawnedTank.transform.position = hitPose.position;
-                        spawnedTank.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
-                    }
-                }
-                else
-                {
-                    spawnedTank.transform.position = hitPose.position;
-                }
+        // Raycast desde el centro de la pantalla hacia el plano AR
+        Vector2 screenCenter = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+
+        if (raycastManager.Raycast(screenCenter, hits, TrackableType.PlaneWithinPolygon))
+        {
+            Pose hitPose = hits[0].pose;
+
+            if (autoPlaceOnPlaneDetected)
+            {
+                SpawnObjects(hitPose.position, hitPose.rotation);
             }
         }
     }
 
-    private bool GetTouchPosition(out Vector2 touchPosition)
+    void SpawnObjects(Vector3 position, Quaternion rotation)
     {
-        touchPosition = Vector2.zero;
-
-        // Detector de toque para teléfonos móviles
-        if (Input.touchCount > 0)
+        if (objectToPlace != null && spawnedObject == null)
         {
-            Touch touch = Input.GetTouch(0);
-            if (touch.phase == TouchPhase.Began)
+            // 1. Crear el Tanque sobre el suelo detectado
+            spawnedObject = Instantiate(objectToPlace, position, rotation);
+            hasSpawned = true;
+
+            // 2. Crear la Caja frente al tanque en el MISMO plano Y
+            if (powerUpBoxPrefab != null)
             {
-                touchPosition = touch.position;
-                return true;
+                // Posicionar 1.5 metros adelante del tanque
+                Vector3 boxPosition = position + (spawnedObject.transform.forward * 1.5f);
+
+                // Mantiene exactamente la misma altura Y del piso AR
+                boxPosition.y = position.y + 0.05f;
+
+                Instantiate(powerUpBoxPrefab, boxPosition, Quaternion.identity);
             }
-        }
 
-        // Detector para clics de ratón en el editor
-        if (Input.GetMouseButtonDown(0))
-        {
-            touchPosition = Input.mousePosition;
-            return true;
+            Debug.Log("Tanque y Caja colocados en el mismo plano Y.");
         }
-
-        return false;
     }
 }
