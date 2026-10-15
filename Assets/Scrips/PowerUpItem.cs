@@ -104,12 +104,6 @@ public class PowerUpItem : MonoBehaviour
                 AudioSource.PlayClipAtPoint(pickupSFX, transform.position);
             }
 
-            if (healVFXPrefab != null)
-            {
-                GameObject vfx = Instantiate(healVFXPrefab, tankHealth.transform.position, Quaternion.identity, tankHealth.transform);
-                Destroy(vfx, 2.5f);
-            }
-
             StartCoroutine(DisappearAnimationRoutine());
         }
     }
@@ -119,11 +113,29 @@ public class PowerUpItem : MonoBehaviour
         switch (tier)
         {
             case PowerUpTier.White_Basic:
-                tankHealth.HealPercent(0.20f);
-
-                if (PopupNotification.Instance != null)
+                // 1. Si la salud ya está al 100%, muestra "¡Salud Completa!"
+                if (tankHealth.currentHealth >= tankHealth.maxHealth)
                 {
-                    PopupNotification.Instance.ShowMessage("¡+20% SALUD REPARADA!", Color.green);
+                    if (PopupNotification.Instance != null)
+                    {
+                        PopupNotification.Instance.ShowMessage("¡Salud Completa!", Color.green);
+                    }
+                }
+                else
+                {
+                    // 2. Si le falta vida, la restaura y lanza el efecto VFX y el texto verde
+                    tankHealth.HealPercent(0.20f);
+
+                    if (healVFXPrefab != null)
+                    {
+                        GameObject vfx = Instantiate(healVFXPrefab, tankHealth.transform.position, Quaternion.identity, tankHealth.transform);
+                        Destroy(vfx, 2.5f);
+                    }
+
+                    if (PopupNotification.Instance != null)
+                    {
+                        PopupNotification.Instance.ShowMessage("¡+20% SALUD REPARADA!", Color.green);
+                    }
                 }
                 break;
 
@@ -162,6 +174,7 @@ public class PowerUpItem : MonoBehaviour
             float scaleMultiplier = Mathf.Lerp(1f, 0f, progress);
             transform.localScale = initialScale * scaleMultiplier;
 
+            // Elevación suave durante la animación
             transform.position = initialPosition + new Vector3(0f, progress * 0.25f, 0f);
 
             transform.Rotate(0f, 720f * Time.deltaTime, 0f);
