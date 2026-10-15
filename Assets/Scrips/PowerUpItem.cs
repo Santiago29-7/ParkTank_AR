@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public enum PowerUpTier
@@ -25,13 +26,16 @@ public class PowerUpItem : MonoBehaviour
     public Material yellowMat;
     public Material redMat;
 
-    [Header("Efectos Visuales y Sonoros")]
-    public GameObject healVFXPrefab; // Asigna un Particle System con destellos verdes
-    public AudioClip pickupSFX;      // Sonido al recoger la caja
+    [Header("Efecto de Humo en el Tanque")]
+    public GameObject healVFXPrefab;   // Arrastra aquí el Prefab VFX_Heal_Smoke
+
+    [Header("Sonido (Opcional)")]
+    public AudioClip pickupSFX;
+
+    private bool isCollected = false;
 
     void Start()
     {
-        // Si no asignaste el renderer manualmente, lo busca en el objeto o sus hijos
         if (boxRenderer == null)
         {
             boxRenderer = GetComponentInChildren<Renderer>();
@@ -40,7 +44,15 @@ public class PowerUpItem : MonoBehaviour
         UpdateBoxMaterial();
     }
 
-    // Cambia el color/material según la rareza elegida
+    void Update()
+    {
+        // Rotación continua mientras flota
+        if (!isCollected)
+        {
+            transform.Rotate(Vector3.up * rotationSpeed * Time.deltaTime, Space.World);
+        }
+    }
+
     public void UpdateBoxMaterial()
     {
         if (boxRenderer == null) return;
@@ -65,71 +77,93 @@ public class PowerUpItem : MonoBehaviour
         }
     }
 
-    void Update()
-    {
-        // Hace que la caja gire continuamente flotando en el aire
-        transform.Rotate(Vector3.up * rotationSpeed * Time.deltaTime, Space.World);
-    }
-
     private void OnTriggerEnter(Collider other)
     {
-        // Verificar si el objeto que tocó la caja es el tanque (o un objeto hijo del tanque)
+        if (isCollected) return;
+
         TankHealth tankHealth = other.GetComponentInParent<TankHealth>();
 
         if (tankHealth != null)
         {
+            isCollected = true;
+
+            // 1. Desactivar el colisionador inmediatamente
+            Collider col = GetComponent<Collider>();
+            if (col != null) col.enabled = false;
+
+            // 2. Aplicar curación/salud
             ApplyPowerUp(tankHealth);
 
-            // Audio de recolección
+            // 3. Reproducir audio si está asignado
             if (pickupSFX != null)
             {
                 AudioSource.PlayClipAtPoint(pickupSFX, transform.position);
             }
 
-            // VFX de curación
+            // 4. Crear el humo verde ÚNICAMENTE sobre el tanque
             if (healVFXPrefab != null)
             {
                 GameObject vfx = Instantiate(healVFXPrefab, tankHealth.transform.position, Quaternion.identity, tankHealth.transform);
-                Destroy(vfx, 2.5f);
+                Destroy(vfx, 2.5f); // Se destruye automáticamente a los 2.5s
             }
 
-            Destroy(gameObject); // Eliminar la caja tras ser recogida
+            // 5. Animación de desvanecimiento de la caja
+            StartCoroutine(DisappearAnimationRoutine());
         }
     }
 
-    void ApplyPowerUp(TankHealth tank)
+    void ApplyPowerUp(TankHealth tankHealth)
     {
         switch (tier)
         {
             case PowerUpTier.White_Basic:
-                TankHealth health = tank.GetComponent<TankHealth>();
-                if (health != null)
-                {
-                    health.HealPercent(0.20f); // Cura el 20%
+                tankHealth.HealPercent(0.20f); // Cura el 20%
 
-                    // Mostrar notificación flotante verde
-                    if (PopupNotification.Instance != null)
-                    {
-                        PopupNotification.Instance.ShowMessage("¡+20% SALUD REPARADA!", Color.green);
-                    }
+                if (PopupNotification.Instance != null)
+                {
+                    PopupNotification.Instance.ShowMessage("¡+20% SALUD REPARADA!", Color.green);
                 }
                 break;
 
             case PowerUpTier.Green_Uncommon:
-                // Reservado para la habilidad verde
                 break;
 
             case PowerUpTier.Blue_Rare:
-                // Reservado para la habilidad azul
                 break;
 
             case PowerUpTier.Yellow_Epic:
-                // Reservado para la habilidad amarilla
                 break;
 
             case PowerUpTier.Red_Legendary:
-                // Reservado para la habilidad roja
                 break;
         }
+    }
+
+    private IEnumerator DisappearAnimationRoutine()
+    {
+        Vector3 initialScale = transform.localScale;
+        Vector3 initialPosition = transform.position;
+        float duration = 0.35f;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float progress = elapsed / duration;
+
+            // Reducir suavemente la escala a cero
+            float scaleMultiplier = Mathf.Lerp(1f, 0f, progress * progress);
+            transform.localScale = initialScale * scaleMultiplier;
+
+            // Elevar ligeramente la caja mientras se encoge
+            transform.position = initialPosition + new Vector3(0f, progress * 0.25f, 0f);
+
+            // Giro rápido sobre su propio eje
+            transform.Rotate(0f, 720f * Time.deltaTime, 0f);
+
+            yield return null;
+        }
+
+        Destroy(gameObject);
     }
 }
