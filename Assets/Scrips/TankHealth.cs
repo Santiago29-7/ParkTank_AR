@@ -7,13 +7,14 @@ public class TankHealth : MonoBehaviour
     [Header("Configuración de Salud")]
     public float maxHealth = 100f;
     public float currentHealth;
+    public bool hasShield = false; // Variable agregada para quitar el error de PowerUpSpawner
 
     private Slider healthSlider;
     private TMP_Text healthText;
 
     void Start()
     {
-        currentHealth = maxHealth; // Inicia siempre con 100 de vida (o la maxHealth configurada)
+        currentHealth = maxHealth; // Inicia siempre con 100 de vida
 
         GameObject sliderObj = GameObject.Find("HealthBarSlider");
         if (sliderObj != null)

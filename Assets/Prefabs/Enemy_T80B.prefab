@@ -195,7 +195,7 @@ MonoBehaviour:
   muzzleFlashPrefab: {fileID: 919132149155446097, guid: 9a666c650832d304997947c19eba9825, type: 3}
   detectionRange: 15
   turretRotationSpeed: 5
-  fireRate: 2
+  fireRate: 5
   bulletSpeed: 8
 --- !u!4 &7329540996292839398 stripped
 Transform:
