@@ -5,6 +5,14 @@ using TMPro;
 public class PopupNotification : MonoBehaviour
 {
     public static PopupNotification Instance;
+
+    [Header("Configuración de Duración (Inspector)")]
+    [Tooltip("Tiempo en segundos que el texto permanece 100% visible")]
+    public float defaultDisplayDuration = 3.0f; // Cambia este valor para más o menos tiempo
+
+    [Tooltip("Tiempo en segundos que tarda en desvanecerse por completo")]
+    public float defaultFadeDuration = 1.0f;
+
     private TMP_Text textComponent;
     private Coroutine fadeCoroutine;
 
@@ -18,7 +26,14 @@ public class PopupNotification : MonoBehaviour
         }
     }
 
-    public void ShowMessage(string message, Color textColor, float displayDuration = 1.2f, float fadeDuration = 0.8f)
+    // Sobrecarga para llamadas simples desde otros scripts
+    public void ShowMessage(string message, Color textColor)
+    {
+        ShowMessage(message, textColor, defaultDisplayDuration, defaultFadeDuration);
+    }
+
+    // Método completo por si quieres pasarle tiempos personalizados puntuales
+    public void ShowMessage(string message, Color textColor, float displayDuration, float fadeDuration)
     {
         if (textComponent == null) return;
 
