@@ -26,27 +26,29 @@ public class PowerUpItem : MonoBehaviour
     public Material yellowMat;
     public Material redMat;
 
-    [Header("Efecto de Humo en el Tanque")]
-    public GameObject healVFXPrefab;   // Arrastra aquí el Prefab VFX_Heal_Smoke
+    [Header("Efecto de Humo/Partículas en el Tanque")]
+    public GameObject healVFXPrefab;
 
     [Header("Sonido (Opcional)")]
     public AudioClip pickupSFX;
 
     private bool isCollected = false;
 
-    void Start()
+    void Awake()
     {
         if (boxRenderer == null)
         {
             boxRenderer = GetComponentInChildren<Renderer>();
         }
+    }
 
+    void Start()
+    {
         UpdateBoxMaterial();
     }
 
     void Update()
     {
-        // Rotación continua mientras flota
         if (!isCollected)
         {
             transform.Rotate(Vector3.up * rotationSpeed * Time.deltaTime, Space.World);
@@ -55,6 +57,11 @@ public class PowerUpItem : MonoBehaviour
 
     public void UpdateBoxMaterial()
     {
+        if (boxRenderer == null)
+        {
+            boxRenderer = GetComponentInChildren<Renderer>();
+        }
+
         if (boxRenderer == null) return;
 
         switch (tier)
@@ -87,27 +94,22 @@ public class PowerUpItem : MonoBehaviour
         {
             isCollected = true;
 
-            // 1. Desactivar el colisionador inmediatamente
             Collider col = GetComponent<Collider>();
             if (col != null) col.enabled = false;
 
-            // 2. Aplicar curación/salud
             ApplyPowerUp(tankHealth);
 
-            // 3. Reproducir audio si está asignado
             if (pickupSFX != null)
             {
                 AudioSource.PlayClipAtPoint(pickupSFX, transform.position);
             }
 
-            // 4. Crear el humo verde ÚNICAMENTE sobre el tanque
             if (healVFXPrefab != null)
             {
                 GameObject vfx = Instantiate(healVFXPrefab, tankHealth.transform.position, Quaternion.identity, tankHealth.transform);
-                Destroy(vfx, 2.5f); // Se destruye automáticamente a los 2.5s
+                Destroy(vfx, 2.5f);
             }
 
-            // 5. Animación de desvanecimiento de la caja
             StartCoroutine(DisappearAnimationRoutine());
         }
     }
@@ -117,7 +119,7 @@ public class PowerUpItem : MonoBehaviour
         switch (tier)
         {
             case PowerUpTier.White_Basic:
-                tankHealth.HealPercent(0.20f); // Cura el 20%
+                tankHealth.HealPercent(0.20f);
 
                 if (PopupNotification.Instance != null)
                 {
@@ -126,6 +128,12 @@ public class PowerUpItem : MonoBehaviour
                 break;
 
             case PowerUpTier.Green_Uncommon:
+                tankHealth.ActivateShield();
+
+                if (PopupNotification.Instance != null)
+                {
+                    PopupNotification.Instance.ShowMessage("¡BLINDAJE ACTIVADO, ERES INMUNE AL SIGUIENTE DISPARO APROVECHALO!", Color.green);
+                }
                 break;
 
             case PowerUpTier.Blue_Rare:
@@ -151,14 +159,11 @@ public class PowerUpItem : MonoBehaviour
             elapsed += Time.deltaTime;
             float progress = elapsed / duration;
 
-            // Reducir suavemente la escala a cero
-            float scaleMultiplier = Mathf.Lerp(1f, 0f, progress * progress);
+            float scaleMultiplier = Mathf.Lerp(1f, 0f, progress);
             transform.localScale = initialScale * scaleMultiplier;
 
-            // Elevar ligeramente la caja mientras se encoge
             transform.position = initialPosition + new Vector3(0f, progress * 0.25f, 0f);
 
-            // Giro rápido sobre su propio eje
             transform.Rotate(0f, 720f * Time.deltaTime, 0f);
 
             yield return null;

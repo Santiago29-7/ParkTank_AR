@@ -1690,7 +1690,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PowerUpItem
   tier: 0
   rotationSpeed: 60
-  boxRenderer: {fileID: 0}
+  boxRenderer: {fileID: 1953060031208126095}
   whiteMat: {fileID: 2100000, guid: a3ebabe45729c6d40a51b9e044c6bd63, type: 2}
   greenMat: {fileID: 2100000, guid: 8bf82147d8f508d4b95bac765d654052, type: 2}
   blueMat: {fileID: 2100000, guid: 2cc63ce5a79b7774cac51580d251eed1, type: 2}

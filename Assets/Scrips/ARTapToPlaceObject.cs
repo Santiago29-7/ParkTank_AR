@@ -45,23 +45,11 @@ public class ARTapToPlaceObject : MonoBehaviour
     {
         if (objectToPlace != null && spawnedObject == null)
         {
-            // 1. Crear el Tanque sobre el suelo detectado
+            // 1. Crear únicamente el Tanque sobre el suelo detectado
             spawnedObject = Instantiate(objectToPlace, position, rotation);
             hasSpawned = true;
 
-            // 2. Crear la Caja frente al tanque en el MISMO plano Y
-            if (powerUpBoxPrefab != null)
-            {
-                // Posicionar 1.5 metros adelante del tanque
-                Vector3 boxPosition = position + (spawnedObject.transform.forward * 1.5f);
-
-                // Mantiene exactamente la misma altura Y del piso AR
-                boxPosition.y = position.y + 0.05f;
-
-                Instantiate(powerUpBoxPrefab, boxPosition, Quaternion.identity);
-            }
-
-            Debug.Log("Tanque y Caja colocados en el mismo plano Y.");
+            Debug.Log("Tanque colocado en el plano AR. El Spawner generará la caja en 10 segundos.");
         }
     }
 }
