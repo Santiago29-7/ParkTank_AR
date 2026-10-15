@@ -83,7 +83,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 0
-  m_CollisionDetection: 0
+  m_CollisionDetection: 3
 --- !u!96 &2137514154392569190
 TrailRenderer:
   serializedVersion: 4
@@ -215,6 +215,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1774602fbc44e054ab749cdf0d11fc05, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TankBullet
+  damage: 15
   explosionVFXPrefab: {fileID: 6174142921497185234, guid: 3d7f7877fc1e2f04380f9ad54085e2fc, type: 3}
   impactSFX: {fileID: 0}
   maxLifetime: 5

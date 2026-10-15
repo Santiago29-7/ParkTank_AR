@@ -2,6 +2,9 @@ using UnityEngine;
 
 public class TankBullet : MonoBehaviour
 {
+    [Header("Configuración de Daño")]
+    public float damage = 15f; // Cantidad de vida que resta al impactar
+
     [Header("Efectos de Impacto")]
     public GameObject explosionVFXPrefab;
     public AudioClip impactSFX;
@@ -51,17 +54,25 @@ public class TankBullet : MonoBehaviour
     {
         if (hasImpacted) return;
 
-        // 1. Mostrar en consola con qué objeto chocó realmente la bala
-        Debug.Log($"[TankBullet] Chocó con: {collision.gameObject.name} en posición Y: {collision.contacts[0].point.y}");
-
-        // 2. Si el choque ocurre muy por encima del nivel del tanque (y no es un enemigo), ignorar la colisión
-        float contactY = collision.contacts[0].point.y;
-        if (contactY > (groundYLevel + 0.3f) && !collision.gameObject.CompareTag("Enemy"))
+        // 1. Ignorar colisiones con cualquier enemigo (para que la bala no choque con el cañón que la disparó)
+        if (collision.gameObject.CompareTag("Enemy") || collision.gameObject.name.Contains("Enemy"))
         {
-            Debug.LogWarning($"[TankBullet] Colisión en aire ignorada sobre objeto: {collision.gameObject.name}");
             return;
         }
 
+        // 2. Si choca contra el Jugador (PlayerTank), le resta vida de una vez
+        TankHealth health = collision.gameObject.GetComponentInParent<TankHealth>();
+        if (health != null)
+        {
+            health.TakeDamage(damage);
+            Debug.Log($"[TankBullet] ¡IMPACTO DIRECTO AL JUGADOR! Salud restante: {health.currentHealth}");
+
+            ContactPoint hit = collision.contacts[0];
+            SpawnImpact(hit.point, Quaternion.LookRotation(hit.normal));
+            return;
+        }
+
+        // 3. Si choca contra cualquier otra cosa (piso, obstáculos), solo crea la explosión
         ContactPoint contact = collision.contacts[0];
         Quaternion hitRotation = Quaternion.LookRotation(contact.normal);
 
