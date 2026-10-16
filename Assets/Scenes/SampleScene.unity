@@ -259,7 +259,7 @@ MonoBehaviour:
   enemyPrefabs:
   - {fileID: 8712783486445385480, guid: 9d151dd5dd42f0a4e976acb112019d72, type: 3}
   - {fileID: 7647318732085671316, guid: 55d81eef4f4847845be0180d86589b11, type: 3}
-  enemiesToSpawn: 1
+  enemiesToSpawn: 2
   minSpawnDistance: 3
   maxSpawnDistance: 5
   spawnDelay: 8
