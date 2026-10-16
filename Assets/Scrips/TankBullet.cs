@@ -2,6 +2,9 @@ using UnityEngine;
 
 public class TankBullet : MonoBehaviour
 {
+    [Header("Configuración de Daño")]
+    public float damage = 15f; // Cantidad de vida que resta al impactar
+
     [Header("Efectos de Impacto")]
     public GameObject explosionVFXPrefab;
     public AudioClip impactSFX;
@@ -13,13 +16,14 @@ public class TankBullet : MonoBehaviour
 
     private bool hasImpacted = false;
     private float spawnTime;
+    private GameObject shooterOwner; // Referencia de quién disparó la bala
 
     void Start()
     {
         spawnTime = Time.time;
         Destroy(gameObject, maxLifetime);
 
-        // Ignorar colisión con la cámara principal si esta tiene collider
+        // Ignorar colisión con la cámara principal
         if (Camera.main != null)
         {
             Collider cameraCollider = Camera.main.GetComponent<Collider>();
@@ -31,14 +35,19 @@ public class TankBullet : MonoBehaviour
         }
     }
 
-    void Update()
+    // Asigna el dueño del disparo e ignora sus colisionadores para evitar autodestrucción
+    public void SetShooter(GameObject owner)
     {
-        if (hasImpacted) return;
+        shooterOwner = owner;
 
-        // Si la bala cae por debajo de la altura del piso virtual (con un pequeño margen de tiempo)
-        if (useVirtualGround && (Time.time - spawnTime) > 0.05f && transform.position.y <= groundYLevel)
+        Collider bulletCollider = GetComponent<Collider>();
+        if (bulletCollider != null && owner != null)
         {
-            TriggerFallbackImpact();
+            Collider[] ownerColliders = owner.GetComponentsInChildren<Collider>();
+            foreach (Collider col in ownerColliders)
+            {
+                Physics.IgnoreCollision(bulletCollider, col);
+            }
         }
     }
 
@@ -47,21 +56,51 @@ public class TankBullet : MonoBehaviour
         groundYLevel = tankYPosition;
     }
 
+    void Update()
+    {
+        if (hasImpacted) return;
+
+        if (useVirtualGround && (Time.time - spawnTime) > 0.05f && transform.position.y <= groundYLevel)
+        {
+            TriggerFallbackImpact();
+        }
+    }
+
     private void OnCollisionEnter(Collision collision)
     {
         if (hasImpacted) return;
 
-        // 1. Mostrar en consola con qué objeto chocó realmente la bala
-        Debug.Log($"[TankBullet] Chocó con: {collision.gameObject.name} en posición Y: {collision.contacts[0].point.y}");
+        // Ignorar si colisiona accidentalmente con quien la disparó
+        if (shooterOwner != null && (collision.gameObject == shooterOwner || collision.transform.IsChildOf(shooterOwner.transform)))
+        {
+            return;
+        }
 
-        // 2. Si el choque ocurre muy por encima del nivel del tanque (y no es un enemigo), ignorar la colisión
+        Debug.Log($"[TankBullet] Chocó con: {collision.gameObject.name} en Y: {collision.contacts[0].point.y}");
+
+        // Buscar componente de salud (en el objeto o en cualquiera de sus padres)
+        TankHealth health = collision.gameObject.GetComponentInParent<TankHealth>();
+
+        // 1. Si golpea a cualquier tanque con salud (Jugador o Enemigo), aplica el daño
+        if (health != null)
+        {
+            health.TakeDamage(damage);
+            Debug.Log($"[TankBullet] ¡IMPACTO DIRECTO A {collision.gameObject.name}! Salud restante: {health.currentHealth}");
+
+            ContactPoint hit = collision.contacts[0];
+            SpawnImpact(hit.point, Quaternion.LookRotation(hit.normal));
+            return;
+        }
+
+        // 2. Si no tiene salud y la colisión es en el aire, ignorar objetos de adorno
         float contactY = collision.contacts[0].point.y;
-        if (contactY > (groundYLevel + 0.3f) && !collision.gameObject.CompareTag("Enemy"))
+        if (useVirtualGround && contactY > (groundYLevel + 0.3f) && !collision.gameObject.CompareTag("Enemy") && !collision.gameObject.CompareTag("Player"))
         {
             Debug.LogWarning($"[TankBullet] Colisión en aire ignorada sobre objeto: {collision.gameObject.name}");
             return;
         }
 
+        // 3. Impacto contra suelo o paredes
         ContactPoint contact = collision.contacts[0];
         Quaternion hitRotation = Quaternion.LookRotation(contact.normal);
 
@@ -75,7 +114,6 @@ public class TankBullet : MonoBehaviour
 
     private void TriggerFallbackImpact()
     {
-        // Fuerza la posición Y exacta del piso virtual donde está el tanque
         Vector3 impactPosition = new Vector3(transform.position.x, groundYLevel, transform.position.z);
         Quaternion hitRotation = Quaternion.LookRotation(Vector3.up);
 
