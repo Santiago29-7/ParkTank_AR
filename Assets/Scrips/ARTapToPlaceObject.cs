@@ -52,4 +52,16 @@ public class ARTapToPlaceObject : MonoBehaviour
             Debug.Log("Tanque colocado en el plano AR. El Spawner generará la caja en 10 segundos.");
         }
     }
+
+    // --- MÉTODO PARA REINICIAR LA COLOCACIÓN DEL TANQUE ---
+    public void ResetPlacement()
+    {
+        if (spawnedObject != null)
+        {
+            Destroy(spawnedObject);
+        }
+        spawnedObject = null;
+        hasSpawned = false; // Permite que vuelva a detectar la mesa y reaparezca el tanque
+        enabled = true;
+    }
 }

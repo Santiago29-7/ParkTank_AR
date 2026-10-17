@@ -364,8 +364,12 @@ MonoBehaviour:
   hasShield: 0
   shieldVFX: {fileID: 4880912220300131383}
   deathVFXPrefab: {fileID: 919132149155446097, guid: 173c2880d4f4465458ac741161712c6b, type: 3}
-  deathSFX: {fileID: 0}
+  deathSFX: {fileID: 8300000, guid: cd7985a83ecde0146b65261e794aef73, type: 3}
   deathVFXScale: 0.25
+  burntColor: {r: 0.15, g: 0.15, b: 0.15, a: 1}
+  wreckDuration: 6
+  turretLaunchForce: 2.2
+  turretHorizontalSpread: 1
 --- !u!65 &2700515229082241842
 BoxCollider:
   m_ObjectHideFlags: 0

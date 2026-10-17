@@ -151,6 +151,13 @@ public class TankHealth : MonoBehaviour
 
         Debug.Log($"[TankHealth] {gameObject.name} destruido.");
 
+        // DETENER TODOS LOS SONIDOS DEL TANQUE (Motor, movimiento, etc.)
+        AudioSource[] activeAudioSources = GetComponentsInChildren<AudioSource>();
+        foreach (AudioSource audio in activeAudioSources)
+        {
+            audio.Stop();
+        }
+
         // 1. Instanciar explosión
         if (deathVFXPrefab != null)
         {
@@ -178,6 +185,16 @@ public class TankHealth : MonoBehaviour
         // Ocultar barra de vida flotante
         Canvas healthCanvas = GetComponentInChildren<Canvas>();
         if (healthCanvas != null) healthCanvas.gameObject.SetActive(false);
+
+        // --- SI ES EL JUGADOR: Disparar la pantalla y sonido de Game Over ---
+        if (CompareTag("Player") || gameObject.name.Contains("Player") || playerScript != null)
+        {
+            GameManager gm = FindFirstObjectByType<GameManager>();
+            if (gm != null)
+            {
+                gm.TriggerGameOver();
+            }
+        }
 
         // 4. Cambiar el color de todas las mallas a metal quemado
         ApplyBurntMetalEffect();

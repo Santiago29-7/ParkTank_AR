@@ -15,7 +15,7 @@ public class EnemySpawner : MonoBehaviour
     public float spawnDelay = 5.0f;
 
     [Header("Configuración de Dificultad / Daño")]
-    public float enemyDamage = 15f; // <--- Modifica el daño de los enemigos desde el Inspector
+    public float enemyDamage = 15f;
 
     private Transform playerTransform;
     private bool isSpawningStarted = false;
@@ -24,11 +24,13 @@ public class EnemySpawner : MonoBehaviour
     {
         if (isSpawningStarted) return;
 
-        // Buscar el tanque activo del jugador en la mesa AR
-        if (playerTransform == null)
+        // Buscar el tanque ACTIVO y VIVO del jugador
+        TankController playerScript = FindFirstObjectByType<TankController>();
+        if (playerScript != null && playerScript.gameObject.activeInHierarchy)
         {
-            TankController playerScript = FindFirstObjectByType<TankController>();
-            if (playerScript != null && playerScript.gameObject.activeInHierarchy)
+            // Verificación: Asegurar que el tanque no sea el viejo que está siendo destruido
+            TankHealth health = playerScript.GetComponent<TankHealth>();
+            if (health != null && health.currentHealth > 0)
             {
                 playerTransform = playerScript.transform;
                 isSpawningStarted = true;
@@ -41,12 +43,21 @@ public class EnemySpawner : MonoBehaviour
     {
         yield return new WaitForSeconds(spawnDelay);
 
-        if (enemyPrefabs == null || enemyPrefabs.Length == 0 || playerTransform == null) yield break;
+        // Si el tanque fue reseteado durante la espera, liberar la bandera para detectar al nuevo
+        if (playerTransform == null)
+        {
+            isSpawningStarted = false;
+            yield break;
+        }
+
+        if (enemyPrefabs == null || enemyPrefabs.Length == 0) yield break;
 
         Vector3 playerPos = playerTransform.position;
 
         for (int i = 0; i < enemiesToSpawn; i++)
         {
+            if (playerTransform == null) break;
+
             GameObject selectedPrefab = enemyPrefabs[Random.Range(0, enemyPrefabs.Length)];
 
             Vector2 randomDirection = Random.insideUnitCircle.normalized;
@@ -62,17 +73,21 @@ public class EnemySpawner : MonoBehaviour
             lookDirection.y = 0;
             Quaternion spawnRotation = Quaternion.LookRotation(lookDirection);
 
-            // Instanciar el tanque enemigo
             GameObject spawnedEnemy = Instantiate(selectedPrefab, spawnPosition, spawnRotation);
 
-            // Asignar el valor de daño al script de la IA
             EnemyTankAI enemyAI = spawnedEnemy.GetComponent<EnemyTankAI>();
             if (enemyAI != null)
             {
                 enemyAI.bulletDamage = enemyDamage;
             }
-
-            Debug.Log($"[EnemySpawner] Enemigo generado con {enemyDamage} de daño.");
         }
+    }
+
+    // --- MÉTODO PARA REINICIAR EL SPAWNER EN AR ---
+    public void ResetSpawner()
+    {
+        StopAllCoroutines();
+        playerTransform = null;
+        isSpawningStarted = false;
     }
 }

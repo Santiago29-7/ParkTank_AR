@@ -31,10 +31,15 @@ public class PowerUpSpawner : MonoBehaviour
                 TankController playerScript = FindFirstObjectByType<TankController>();
                 if (playerScript != null && playerScript.gameObject.activeInHierarchy)
                 {
-                    playerTransform = playerScript.transform;
-                    isSpawnerStarted = true;
-                    InvokeRepeating(nameof(TrySpawnPowerUp), initialDelay, spawnInterval);
-                    Debug.Log("[PowerUpSpawner] Jugador detectado en AR. Temporizador de cajas iniciado.");
+                    // Verificar que el tanque detectado sea el NUEVO y no el destruido
+                    TankHealth tankHealth = playerScript.GetComponent<TankHealth>();
+                    if (tankHealth != null && tankHealth.currentHealth > 0)
+                    {
+                        playerTransform = playerScript.transform;
+                        isSpawnerStarted = true;
+                        InvokeRepeating(nameof(TrySpawnPowerUp), initialDelay, spawnInterval);
+                        Debug.Log("[PowerUpSpawner] Jugador detectado en AR. Temporizador de cajas iniciado.");
+                    }
                 }
             }
         }
@@ -42,7 +47,10 @@ public class PowerUpSpawner : MonoBehaviour
 
     void TrySpawnPowerUp()
     {
-        if (currentPowerUp == null && playerTransform != null)
+        // Si el tanque fue destruido o reseteado, detener generación hasta encontrar al nuevo
+        if (playerTransform == null) return;
+
+        if (currentPowerUp == null)
         {
             SpawnPowerUpOnPlane();
         }
@@ -82,5 +90,20 @@ public class PowerUpSpawner : MonoBehaviour
 
             powerUpItem.UpdateBoxMaterial();
         }
+    }
+
+    // --- MÉTODO PARA REINICIAR EL GENERADOR DE CAJAS EN AR ---
+    public void ResetSpawner()
+    {
+        CancelInvoke(nameof(TrySpawnPowerUp)); // Detener el reloj
+        playerTransform = null;
+
+        if (currentPowerUp != null)
+        {
+            Destroy(currentPowerUp);
+        }
+        currentPowerUp = null;
+
+        isSpawnerStarted = false; // Permitir buscar al nuevo jugador
     }
 }
