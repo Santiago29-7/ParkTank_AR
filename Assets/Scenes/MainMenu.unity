@@ -1724,7 +1724,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainMenuManager
   singleplayerSceneName: SampleScene
-  multiplayerSceneName: MultiplayerScene
+  multiplayerSceneName: LobbyScene
 --- !u!4 &1793766126
 Transform:
   m_ObjectHideFlags: 0
