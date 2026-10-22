@@ -1,8 +1,10 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using Photon.Pun; // 1. Librería de Photon añadida
 
-public class TankController : MonoBehaviour
+// 2. Heredamos de MonoBehaviourPun para tener acceso a photonView
+public class TankController : MonoBehaviourPun
 {
     [Header("Referencias de Joysticks")]
     public SimpleJoystick leftJoystick;
@@ -29,9 +31,9 @@ public class TankController : MonoBehaviour
     public AudioClip shootSFX;
 
     [Header("Sonidos de Motor")]
-    public AudioClip engineStartSFX;      // Clip de arranque (se juega 1 vez)
-    public AudioClip engineIdleSFX;       // Clip de motor encendido en reposo (loop)
-    public AudioClip engineDrivingSFX;    // Clip de motor en marcha (loop)
+    public AudioClip engineStartSFX;
+    public AudioClip engineIdleSFX;
+    public AudioClip engineDrivingSFX;
 
     [Header("Guía de Trayectoria")]
     public LineRenderer trajectoryLine;
@@ -51,7 +53,12 @@ public class TankController : MonoBehaviour
     void Start()
     {
         mainCamera = Camera.main;
-        AutoConnectJoysticks();
+
+        // 3. SOLO conectamos los joysticks si el tanque es nuestro
+        if (photonView.IsMine)
+        {
+            AutoConnectJoysticks();
+        }
 
         if (trajectoryLine != null)
         {
@@ -69,7 +76,6 @@ public class TankController : MonoBehaviour
             reloadOverlayImage.enabled = false;
         }
 
-        // Iniciar secuencia de encendido
         StartCoroutine(StartEngineSequence());
     }
 
@@ -77,18 +83,14 @@ public class TankController : MonoBehaviour
     {
         isEngineReady = false;
 
-        // 1. Reproducir arranque
         if (engineStartSFX != null && audioSource != null)
         {
             audioSource.clip = engineStartSFX;
             audioSource.loop = false;
             audioSource.Play();
-
-            // Esperar duración exacta del clip de arranque
             yield return new WaitForSeconds(engineStartSFX.length);
         }
 
-        // 2. Habilitar tanque y pasar a sonido de motor en reposo (Idle)
         isEngineReady = true;
 
         if (engineIdleSFX != null && audioSource != null)
@@ -109,12 +111,14 @@ public class TankController : MonoBehaviour
 
     void Update()
     {
+        // 4. ESTA ES LA LÍNEA MÁGICA: Si el tanque no es tuyo, el código se detiene aquí y no lee tus controles
+        if (!photonView.IsMine) return;
+
         if (leftJoystick == null || rightJoystick == null || reloadOverlayImage == null || muzzleFlash3D == null)
         {
             AutoConnectJoysticks();
         }
 
-        // Si el motor aún no termina de arrancar, bloqueamos movimiento
         if (!isEngineReady)
         {
             if (trajectoryLine != null) trajectoryLine.enabled = false;
@@ -134,7 +138,6 @@ public class TankController : MonoBehaviour
 
         if (isMoving)
         {
-            // Si se está moviendo y no está sonando el audio de marcha
             if (engineDrivingSFX != null && audioSource.clip != engineDrivingSFX)
             {
                 audioSource.clip = engineDrivingSFX;
@@ -144,7 +147,6 @@ public class TankController : MonoBehaviour
         }
         else
         {
-            // Si está detenido y no está sonando el audio de reposo (Idle)
             if (engineIdleSFX != null && audioSource.clip != engineIdleSFX)
             {
                 audioSource.clip = engineIdleSFX;
@@ -156,6 +158,7 @@ public class TankController : MonoBehaviour
 
     void AutoConnectJoysticks()
     {
+        // Importante: Asegúrate de que los nombres "LeftJoystick" y "RightJoystick" coincidan exactamente con tu jerarquía en Unity
         if (leftJoystick == null)
         {
             GameObject leftObj = GameObject.Find("LeftJoystick");
@@ -201,7 +204,6 @@ public class TankController : MonoBehaviour
         float moveZ = leftJoystick.Vertical;
         Vector3 inputDir = new Vector3(moveX, 0f, moveZ);
 
-        // Detectar si hay entrada en el joystick
         isMoving = inputDir.magnitude > 0.05f;
 
         if (isMoving)
@@ -336,13 +338,11 @@ public class TankController : MonoBehaviour
 
         if (Time.time < nextFireTime)
         {
-            Debug.Log($"Cañón recargando... Tiempo restante: {(nextFireTime - Time.time):F1}s");
             return;
         }
 
         if (bulletPrefab == null || cannonMuzzle == null)
         {
-            Debug.LogWarning("TankController: Falta asignar bulletPrefab o cannonMuzzle en el Inspector.");
             return;
         }
 
@@ -352,6 +352,7 @@ public class TankController : MonoBehaviour
         if (trajectoryLine != null)
             trajectoryLine.enabled = false;
 
+        // OJO: Si quieres que el otro jugador vea tus balas, más adelante cambiaremos Instantiate() por PhotonNetwork.Instantiate()
         GameObject bullet = Instantiate(bulletPrefab, cannonMuzzle.position, cannonMuzzle.rotation);
 
         Collider bulletCollider = bullet.GetComponent<Collider>();

@@ -496,7 +496,7 @@ RectTransform:
   m_GameObject: {fileID: 433823308}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 2, y: 2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 565018711}
@@ -1381,6 +1381,8 @@ GameObject:
   - component: {fileID: 1372920564}
   - component: {fileID: 1372920563}
   - component: {fileID: 1372920568}
+  - component: {fileID: 1372920569}
+  - component: {fileID: 1372920570}
   m_Layer: 0
   m_Name: XR Origin (Mobile AR)
   m_TagString: Untagged
@@ -1475,7 +1477,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1372920562}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: da6ae348360132849b51ef8fbe249722, type: 3}
   m_Name: 
@@ -1483,6 +1485,39 @@ MonoBehaviour:
   objectToPlace: {fileID: 1469825721271101976, guid: d0ff93d20f9b902469f06af0e0e87508, type: 3}
   powerUpBoxPrefab: {fileID: 2480086338011278023, guid: f33d359d49ea45649bc8528cd09148aa, type: 3}
   autoPlaceOnPlaneDetected: 1
+--- !u!114 &1372920569
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1372920562}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4dea56a9eaadd1c439095de4f9a371cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.XR.ARFoundation::UnityEngine.XR.ARFoundation.ARTrackedImageManager
+  <trackablesChanged>k__BackingField:
+    m_PersistentCalls:
+      m_Calls: []
+  m_SerializedLibrary: {fileID: 11400000, guid: a207c4970b94b1341a3ce87a37997fd0, type: 2}
+  m_MaxNumberOfMovingImages: 1
+  m_TrackedImagePrefab: {fileID: 0}
+--- !u!114 &1372920570
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1372920562}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dbd42f186aeaa81449ad86a4ed0b1a77, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ARImageTrackingSpawner
+  trackedImageManager: {fileID: 1372920569}
+  arenaPrefab: {fileID: 0}
+  tankPrefabName: PlayerTank
 --- !u!1 &1553500799
 GameObject:
   m_ObjectHideFlags: 0

@@ -548,6 +548,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 7011a125ca0ddf24dba51461670b5ad7, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8500063611752709241}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 7011a125ca0ddf24dba51461670b5ad7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -2897212187665565802}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 7011a125ca0ddf24dba51461670b5ad7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -160377027646490273}
   m_SourcePrefab: {fileID: 100100000, guid: 7011a125ca0ddf24dba51461670b5ad7, type: 3}
 --- !u!4 &83408012669106130 stripped
 Transform:
@@ -632,6 +638,7 @@ MonoBehaviour:
   turretRotationSpeed: 5
   fireRate: 5
   bulletSpeed: 8
+  bulletDamage: 15
   moveSpeed: 0.18
   bodyRotationSpeed: 5
   minCombatDistance: 0.45
@@ -659,3 +666,45 @@ MonoBehaviour:
   deathVFXPrefab: {fileID: 919132149155446097, guid: 173c2880d4f4465458ac741161712c6b, type: 3}
   deathSFX: {fileID: 0}
   deathVFXScale: 0.1
+  burntColor: {r: 0.15, g: 0.15, b: 0.15, a: 1}
+  wreckDuration: 6
+  turretLaunchForce: 2.2
+  turretHorizontalSpread: 1
+--- !u!114 &-2897212187665565802
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8712783486445385480}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa584fbee541324448dd18d8409c7a41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PhotonUnityNetworking::Photon.Pun.PhotonView
+  ObservedComponentsFoldoutOpen: 1
+  Group: 0
+  prefixField: -1
+  Synchronization: 3
+  OwnershipTransfer: 0
+  observableSearch: 2
+  ObservedComponents: []
+  sceneViewId: 0
+  InstantiationId: 0
+  isRuntimeInstantiated: 0
+--- !u!114 &-160377027646490273
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8712783486445385480}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 627855c7f81362d41938ffe0b1475957, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PhotonUnityNetworking::Photon.Pun.PhotonTransformView
+  m_SynchronizePosition: 1
+  m_SynchronizeRotation: 1
+  m_SynchronizeScale: 0
+  m_UseLocal: 1
