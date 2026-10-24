@@ -30,8 +30,12 @@ public class ARImageTrackingSpawner : MonoBehaviour
     {
         foreach (var trackedImage in eventArgs.added)
         {
-            SpawnNetworkObjects(trackedImage.transform);
+            if (!hasSpawned && trackedImage.trackingState == UnityEngine.XR.ARSubsystems.TrackingState.Tracking)
+            {
+                SpawnNetworkObjects(trackedImage.transform);
+            }
         }
+
         foreach (var trackedImage in eventArgs.updated)
         {
             if (!hasSpawned && trackedImage.trackingState == UnityEngine.XR.ARSubsystems.TrackingState.Tracking)
@@ -49,15 +53,30 @@ public class ARImageTrackingSpawner : MonoBehaviour
         // 1. Instanciar la arena localmente sobre el código QR
         if (arenaPrefab != null)
         {
-            Instantiate(arenaPrefab, imageTransform.position, imageTransform.rotation);
+            //Instantiate(arenaPrefab, imageTransform.position, imageTransform.rotation);
         }
 
         // 2. Calcular posición del tanque según el rol del jugador (Anfitrión a la izquierda, Cliente a la derecha)
-        Vector3 offset = PhotonNetwork.IsMasterClient ? new Vector3(-0.3f, 0.05f, 0f) : new Vector3(0.3f, 0.05f, 0f);
+        Vector3 offset = PhotonNetwork.IsMasterClient ? new Vector3(-0.3f, 0f, 0f) : new Vector3(0.3f, 0f, 0f);
         Vector3 spawnPosition = imageTransform.TransformPoint(offset);
         Quaternion spawnRotation = imageTransform.rotation;
 
         // 3. Instanciar el tanque en red usando Photon
         PhotonNetwork.Instantiate(tankPrefabName, spawnPosition, spawnRotation);
+    }
+
+    // --- ESTA ES LA FUNCIÓN NUEVA QUE EL GAMEMANAGER NECESITA ---
+    public void RespawnTankLocal()
+    {
+        foreach (var trackedImage in trackedImageManager.trackables)
+        {
+            if (trackedImage.trackingState == UnityEngine.XR.ARSubsystems.TrackingState.Tracking)
+            {
+                Vector3 offset = PhotonNetwork.IsMasterClient ? new Vector3(-0.3f, 0f, 0f) : new Vector3(0.3f, 0f, 0f);
+                Vector3 spawnPosition = trackedImage.transform.TransformPoint(offset);
+                PhotonNetwork.Instantiate(tankPrefabName, spawnPosition, trackedImage.transform.rotation);
+                return;
+            }
+        }
     }
 }

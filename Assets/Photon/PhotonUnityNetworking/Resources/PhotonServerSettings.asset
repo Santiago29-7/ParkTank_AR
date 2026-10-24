@@ -40,6 +40,13 @@ MonoBehaviour:
   - DestroySpaceship
   - Fire
   - RespawnSpaceship
+  - RPC_DeclareWinner
+  - RPC_TankDied
+  - RPC_UpdateHealthUI
+  - RPC_NotifyKill
+  - RPC_TakeDamageNetwork
+  - RPC_ApplyDamageAndCheckKill
+  - RPC_Heal
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 0

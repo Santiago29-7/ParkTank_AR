@@ -2,8 +2,9 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using Photon.Pun;
 
-public class TankHealth : MonoBehaviour
+public class TankHealth : MonoBehaviourPun
 {
     [Header("Configuración de Salud")]
     public float maxHealth = 100f;
@@ -18,15 +19,15 @@ public class TankHealth : MonoBehaviour
     public GameObject shieldVFX;
 
     [Header("Efectos de Muerte y Explosión")]
-    public GameObject deathVFXPrefab;    // Prefab 'Impacto-proyectil'
-    public AudioClip deathSFX;           // Sonido de explosión
-    public float deathVFXScale = 0.35f;  // Escala de la explosión
-    public Color burntColor = new Color(0.15f, 0.15f, 0.15f); // Color metal quemado
-    public float wreckDuration = 6.0f;   // Tiempo que permanecen los restos
+    public GameObject deathVFXPrefab;
+    public AudioClip deathSFX;
+    public float deathVFXScale = 0.35f;
+    public Color burntColor = new Color(0.15f, 0.15f, 0.15f);
+    public float wreckDuration = 6.0f;
 
     [Header("Ajustes de Torreta Voladora")]
-    public float turretLaunchForce = 2.2f;       // Fuerza vertical (altura del salto)
-    public float turretHorizontalSpread = 1.0f;  // Fuerza horizontal (desplazamiento)
+    public float turretLaunchForce = 2.2f;
+    public float turretHorizontalSpread = 1.0f;
 
     private bool isDead = false;
 
@@ -34,20 +35,11 @@ public class TankHealth : MonoBehaviour
     {
         currentHealth = maxHealth;
 
-        // Buscar Slider en los objetos hijos (para enemigos)
-        if (healthSlider == null)
-        {
-            healthSlider = GetComponentInChildren<Slider>();
-        }
-
-        // Si es el Jugador, buscar la barra en la interfaz global
+        if (healthSlider == null) healthSlider = GetComponentInChildren<Slider>();
         if (healthSlider == null && (CompareTag("Player") || gameObject.name.Contains("Player")))
         {
             GameObject sliderObj = GameObject.Find("HealthBarSlider");
-            if (sliderObj != null)
-            {
-                healthSlider = sliderObj.GetComponent<Slider>();
-            }
+            if (sliderObj != null) healthSlider = sliderObj.GetComponent<Slider>();
         }
 
         if (healthSlider != null)
@@ -59,19 +51,11 @@ public class TankHealth : MonoBehaviour
         if (healthText == null && (CompareTag("Player") || gameObject.name.Contains("Player")))
         {
             GameObject textObj = GameObject.Find("HealthTextNumber");
-            if (textObj != null)
-            {
-                healthText = textObj.GetComponent<TMP_Text>();
-            }
+            if (textObj != null) healthText = textObj.GetComponent<TMP_Text>();
         }
 
         FindShieldReference();
-
-        if (shieldVFX != null)
-        {
-            shieldVFX.SetActive(hasShield);
-        }
-
+        if (shieldVFX != null) shieldVFX.SetActive(hasShield);
         UpdateUI();
     }
 
@@ -80,10 +64,7 @@ public class TankHealth : MonoBehaviour
         if (shieldVFX == null)
         {
             Transform foundShield = transform.Find("escudo-hexagonal");
-            if (foundShield != null)
-            {
-                shieldVFX = foundShield.gameObject;
-            }
+            if (foundShield != null) shieldVFX = foundShield.gameObject;
         }
     }
 
@@ -91,34 +72,38 @@ public class TankHealth : MonoBehaviour
     {
         FindShieldReference();
         hasShield = true;
-
-        if (shieldVFX != null)
-        {
-            shieldVFX.SetActive(true);
-            Debug.Log("¡Blindaje activado! Escudo encendido visualmente.");
-        }
+        if (shieldVFX != null) shieldVFX.SetActive(true);
     }
 
-    public void HealPercent(float percentage)
+    // --- SISTEMA DE DAÑO CORREGIDO (SOPORTA RED E IA LOCAL) ---
+    public void TakeDamage(float amount)
     {
         if (isDead) return;
-        float healAmount = maxHealth * percentage;
-        currentHealth = Mathf.Min(currentHealth + healAmount, maxHealth);
-        UpdateUI();
+
+        int shooterActorNumber = (PhotonNetwork.IsConnected && PhotonNetwork.LocalPlayer != null)
+            ? PhotonNetwork.LocalPlayer.ActorNumber
+            : -1;
+
+        // Si no hay red, no hay PhotonView o el ViewID es 0 (Enemigo IA local), se procesa localmente
+        if (!PhotonNetwork.IsConnected || photonView == null || photonView.ViewID == 0)
+        {
+            RPC_ApplyDamageAndCheckKill(amount, shooterActorNumber);
+            return;
+        }
+
+        // Si es un objeto sincronizado en la red (otro jugador)
+        photonView.RPC("RPC_ApplyDamageAndCheckKill", RpcTarget.All, amount, shooterActorNumber);
     }
 
-    public void TakeDamage(float amount)
+    [PunRPC]
+    void RPC_ApplyDamageAndCheckKill(float amount, int shooterActorNumber)
     {
         if (isDead) return;
 
         if (hasShield)
         {
             hasShield = false;
-            if (shieldVFX != null)
-            {
-                shieldVFX.SetActive(false);
-            }
-            Debug.Log("¡El blindaje absorbió el impacto! Daño evitado.");
+            if (shieldVFX != null) shieldVFX.SetActive(false);
             return;
         }
 
@@ -127,38 +112,36 @@ public class TankHealth : MonoBehaviour
 
         if (currentHealth <= 0f)
         {
-            Die();
+            isDead = true;
+
+            // 1. Efectos de explosión
+            PlayDeathEffects();
+
+            // 2. Determinar si fuiste tú quien realizó el disparo letal
+            bool isLocalShooter = !PhotonNetwork.IsConnected ||
+                                  (PhotonNetwork.LocalPlayer != null && PhotonNetwork.LocalPlayer.ActorNumber == shooterActorNumber);
+
+            if (isLocalShooter)
+            {
+                GameManager gm = FindFirstObjectByType<GameManager>();
+                if (gm != null) gm.AddKill();
+            }
+
+            // 3. Pantalla de Game Over si este era tu tanque
+            TankController playerScript = GetComponent<TankController>();
+            if (playerScript != null && (photonView == null || photonView.IsMine))
+            {
+                GameManager gm = FindFirstObjectByType<GameManager>();
+                if (gm != null) gm.TriggerGameOver();
+            }
         }
     }
 
-    void UpdateUI()
+    void PlayDeathEffects()
     {
-        if (healthSlider != null)
-        {
-            healthSlider.value = currentHealth;
-        }
-
-        if (healthText != null)
-        {
-            healthText.text = Mathf.RoundToInt(currentHealth).ToString();
-        }
-    }
-
-    void Die()
-    {
-        if (isDead) return;
-        isDead = true;
-
-        Debug.Log($"[TankHealth] {gameObject.name} destruido.");
-
-        // DETENER TODOS LOS SONIDOS DEL TANQUE (Motor, movimiento, etc.)
         AudioSource[] activeAudioSources = GetComponentsInChildren<AudioSource>();
-        foreach (AudioSource audio in activeAudioSources)
-        {
-            audio.Stop();
-        }
+        foreach (AudioSource audio in activeAudioSources) audio.Stop();
 
-        // 1. Instanciar explosión
         if (deathVFXPrefab != null)
         {
             GameObject explosion = Instantiate(deathVFXPrefab, transform.position, Quaternion.identity);
@@ -166,13 +149,11 @@ public class TankHealth : MonoBehaviour
             Destroy(explosion, 2.5f);
         }
 
-        // 2. Reproducir audio de explosión
         if (deathSFX != null)
         {
             AudioSource.PlayClipAtPoint(deathSFX, transform.position, 1.0f);
         }
 
-        // 3. Desactivar scripts de movimiento, controles y colisiones
         EnemyTankAI aiScript = GetComponent<EnemyTankAI>();
         if (aiScript != null) aiScript.enabled = false;
 
@@ -182,25 +163,41 @@ public class TankHealth : MonoBehaviour
         Collider col = GetComponent<Collider>();
         if (col != null) col.enabled = false;
 
-        // Ocultar barra de vida flotante
         Canvas healthCanvas = GetComponentInChildren<Canvas>();
         if (healthCanvas != null) healthCanvas.gameObject.SetActive(false);
 
-        // --- SI ES EL JUGADOR: Disparar la pantalla y sonido de Game Over ---
-        if (CompareTag("Player") || gameObject.name.Contains("Player") || playerScript != null)
+        ApplyBurntMetalEffect();
+        StartCoroutine(DetachTurretAndCleanup());
+    }
+
+    public void HealPercent(float percentage)
+    {
+        if (isDead) return;
+
+        if (!PhotonNetwork.IsConnected || photonView == null || photonView.ViewID == 0)
         {
-            GameManager gm = FindFirstObjectByType<GameManager>();
-            if (gm != null)
-            {
-                gm.TriggerGameOver();
-            }
+            RPC_Heal(percentage);
+            return;
         }
 
-        // 4. Cambiar el color de todas las mallas a metal quemado
-        ApplyBurntMetalEffect();
+        if (photonView.IsMine)
+        {
+            photonView.RPC("RPC_Heal", RpcTarget.All, percentage);
+        }
+    }
 
-        // 5. Desacoplar torreta y lanzar
-        StartCoroutine(DetachTurretAndCleanup());
+    [PunRPC]
+    void RPC_Heal(float percentage)
+    {
+        float healAmount = maxHealth * percentage;
+        currentHealth = Mathf.Min(currentHealth + healAmount, maxHealth);
+        UpdateUI();
+    }
+
+    void UpdateUI()
+    {
+        if (healthSlider != null) healthSlider.value = currentHealth;
+        if (healthText != null) healthText.text = Mathf.RoundToInt(currentHealth).ToString();
     }
 
     void ApplyBurntMetalEffect()
@@ -209,17 +206,10 @@ public class TankHealth : MonoBehaviour
         foreach (Renderer rend in renderers)
         {
             if (rend is CanvasRenderer) continue;
-
             foreach (Material mat in rend.materials)
             {
-                if (mat.HasProperty("_BaseColor"))
-                {
-                    mat.SetColor("_BaseColor", burntColor);
-                }
-                else if (mat.HasProperty("_Color"))
-                {
-                    mat.SetColor("_Color", burntColor);
-                }
+                if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", burntColor);
+                else if (mat.HasProperty("_Color")) mat.SetColor("_Color", burntColor);
             }
         }
     }
@@ -227,8 +217,8 @@ public class TankHealth : MonoBehaviour
     IEnumerator DetachTurretAndCleanup()
     {
         float groundY = transform.position.y;
-
         Transform turret = transform.Find("Torreta");
+
         if (turret == null)
         {
             foreach (Transform child in transform)
@@ -243,18 +233,13 @@ public class TankHealth : MonoBehaviour
 
         if (turret != null)
         {
-            turret.parent = null; // Separar del chasis
-
+            turret.parent = null;
             Rigidbody turretRb = turret.gameObject.GetComponent<Rigidbody>();
-            if (turretRb == null)
-            {
-                turretRb = turret.gameObject.AddComponent<Rigidbody>();
-            }
+            if (turretRb == null) turretRb = turret.gameObject.AddComponent<Rigidbody>();
 
             turretRb.isKinematic = false;
             turretRb.useGravity = true;
 
-            // Impulso vertical y horizontal
             Vector3 forceDirection = Vector3.up * turretLaunchForce + Random.insideUnitSphere * turretHorizontalSpread;
             turretRb.AddForce(forceDirection, ForceMode.Impulse);
             turretRb.AddTorque(Random.insideUnitSphere * 8f, ForceMode.Impulse);
@@ -262,13 +247,10 @@ public class TankHealth : MonoBehaviour
             StartCoroutine(ClampTurretToGround(turret, turretRb, groundY));
         }
 
-        // Esperar el tiempo configurado en la mesa
         yield return new WaitForSeconds(wreckDuration);
 
-        // Desvanecimiento / Encogimiento progresivo simultáneo
         Vector3 initialScale = transform.localScale;
         Vector3 turretInitialScale = (turret != null) ? turret.localScale : Vector3.zero;
-
         float elapsedTime = 0f;
         float duration = 1.2f;
 
@@ -277,30 +259,27 @@ public class TankHealth : MonoBehaviour
             elapsedTime += Time.deltaTime;
             float progress = elapsedTime / duration;
 
-            // Encoger el chasis
             transform.localScale = Vector3.Lerp(initialScale, Vector3.zero, progress);
-
-            // Encoger la torreta al mismo tiempo
-            if (turret != null)
-            {
-                turret.localScale = Vector3.Lerp(turretInitialScale, Vector3.zero, progress);
-            }
+            if (turret != null) turret.localScale = Vector3.Lerp(turretInitialScale, Vector3.zero, progress);
 
             yield return null;
         }
 
-        if (turret != null)
-        {
-            Destroy(turret.gameObject);
-        }
+        if (turret != null) Destroy(turret.gameObject);
 
-        Destroy(gameObject);
+        if (PhotonNetwork.IsConnected && photonView != null && photonView.IsMine)
+        {
+            PhotonNetwork.Destroy(gameObject);
+        }
+        else if (!PhotonNetwork.IsConnected || photonView == null || photonView.ViewID == 0)
+        {
+            Destroy(gameObject);
+        }
     }
 
     IEnumerator ClampTurretToGround(Transform turret, Rigidbody turretRb, float groundY)
     {
         float targetGroundY = groundY + 0.01f;
-
         yield return new WaitForSeconds(0.25f);
 
         while (turret != null)
