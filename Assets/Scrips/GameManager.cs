@@ -100,7 +100,7 @@ public class GameManager : MonoBehaviourPunCallbacks
 
     void UpdateKillUI()
     {
-        if (killCounterText != null) killCounterText.text = currentKills + " / " + killsToWin;
+        if (killCounterText != null) killCounterText.text = currentKills + "/" + killsToWin;
     }
 
     [PunRPC]
@@ -132,7 +132,7 @@ public class GameManager : MonoBehaviourPunCallbacks
 
         if (isWinner)
         {
-            if (gameOverText != null) gameOverText.text = "¡VICTORIA!\n¡ALCANZASTE LAS 5 BAJAS!";
+            if (gameOverText != null) gameOverText.text = "¡VICTORIA!";
             if (victorySFX != null && audioSource != null) audioSource.PlayOneShot(victorySFX);
         }
         else

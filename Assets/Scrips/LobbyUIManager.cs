@@ -145,25 +145,44 @@ public class LobbyUIManager : MonoBehaviourPunCallbacks
     {
         int totalJugadores = PhotonNetwork.CurrentRoom.PlayerCount;
 
+        // Obtener el nickname del jugador rival (el jugador que no es el local)
+        string nombreRival = "JUGADOR 2";
+        foreach (Player p in PhotonNetwork.PlayerList)
+        {
+            if (!p.IsLocal && !string.IsNullOrEmpty(p.NickName))
+            {
+                nombreRival = p.NickName.ToUpper();
+                break;
+            }
+        }
+
         if (PhotonNetwork.IsMasterClient)
         {
             btnIniciarPartida.gameObject.SetActive(true);
 
             if (totalJugadores >= 2)
             {
-                txtEstadoJugadores.text = "¡Jugador 2 conectado! Listo para iniciar.";
+                txtEstadoJugadores.text = "¡" + nombreRival + " CONECTADO! Listo para iniciar.";
                 btnIniciarPartida.interactable = true;
             }
             else
             {
-                txtEstadoJugadores.text = "Esperando que se una el Jugador 2...";
+                txtEstadoJugadores.text = "Esperando que se una una un jugador...";
                 btnIniciarPartida.interactable = false;
             }
         }
         else
         {
             btnIniciarPartida.gameObject.SetActive(false);
-            txtEstadoJugadores.text = "¡Conectado! Esperando que el Anfitrión inicie...";
+
+            // Obtener el nickname del Anfitrión (Host)
+            string nombreHost = "ANFITRIÓN";
+            if (PhotonNetwork.MasterClient != null && !string.IsNullOrEmpty(PhotonNetwork.MasterClient.NickName))
+            {
+                nombreHost = PhotonNetwork.MasterClient.NickName.ToUpper();
+            }
+
+            txtEstadoJugadores.text = "¡Conectado con " + nombreHost + "! Esperando que el anfitrion inicie...";
         }
     }
 }
