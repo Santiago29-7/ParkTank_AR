@@ -5,9 +5,13 @@ public class PowerUpSpawner : MonoBehaviour
     [Header("Prefab de la Caja")]
     public GameObject powerUpPrefab;
 
-    [Header("Probabilidad de Aparición")]
+    [Header("Probabilidad de Aparición (Kabulogan = 1.0 / 100%)")]
     [Range(0f, 1f)]
-    public float whiteBoxChance = 0.70f;
+    public float whiteBoxChance = 0.60f; // 60% Purdaw (Salud)
+
+    [Range(0f, 1f)]
+    public float greenBoxChance = 0.30f; // 30% Berde (Escudo)
+    // Ti natda (10% wenno 0.10) ket para iti Duyaw (Nuke)
 
     [Header("Configuración del Área (Plano AR)")]
     public float minDistance = 0.25f;
@@ -31,7 +35,6 @@ public class PowerUpSpawner : MonoBehaviour
                 TankController playerScript = FindFirstObjectByType<TankController>();
                 if (playerScript != null && playerScript.gameObject.activeInHierarchy)
                 {
-                    // Verificar que el tanque detectado sea el NUEVO y no el destruido
                     TankHealth tankHealth = playerScript.GetComponent<TankHealth>();
                     if (tankHealth != null && tankHealth.currentHealth > 0)
                     {
@@ -47,7 +50,6 @@ public class PowerUpSpawner : MonoBehaviour
 
     void TrySpawnPowerUp()
     {
-        // Si el tanque fue destruido o reseteado, detener generación hasta encontrar al nuevo
         if (playerTransform == null) return;
 
         if (currentPowerUp == null)
@@ -84,18 +86,30 @@ public class PowerUpSpawner : MonoBehaviour
             }
             else
             {
-                float roll = Random.value;
-                powerUpItem.tier = (roll < whiteBoxChance) ? PowerUpTier.White_Basic : PowerUpTier.Green_Uncommon;
+                // Pamay-an ti kalkulasion iti tallo a koton
+                float roll = Random.value; // Unoy a numero manipud 0.0 agingga 1.0
+
+                if (roll < whiteBoxChance)
+                {
+                    powerUpItem.tier = PowerUpTier.White_Basic; // Purdaw (Salud)
+                }
+                else if (roll < (whiteBoxChance + greenBoxChance))
+                {
+                    powerUpItem.tier = PowerUpTier.Green_Uncommon; // Berde (Escudo)
+                }
+                else
+                {
+                    powerUpItem.tier = PowerUpTier.Yellow_Epic; // Duyaw (Nuke)
+                }
             }
 
             powerUpItem.UpdateBoxMaterial();
         }
     }
 
-    // --- MÉTODO PARA REINICIAR EL GENERADOR DE CAJAS EN AR ---
     public void ResetSpawner()
     {
-        CancelInvoke(nameof(TrySpawnPowerUp)); // Detener el reloj
+        CancelInvoke(nameof(TrySpawnPowerUp));
         playerTransform = null;
 
         if (currentPowerUp != null)
@@ -104,6 +118,6 @@ public class PowerUpSpawner : MonoBehaviour
         }
         currentPowerUp = null;
 
-        isSpawnerStarted = false; // Permitir buscar al nuevo jugador
+        isSpawnerStarted = false;
     }
 }

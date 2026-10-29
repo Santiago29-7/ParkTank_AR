@@ -126,6 +126,7 @@ MonoBehaviour:
   cannonMuzzle: {fileID: 6980671145682384314}
   bulletForce: 25
   reloadTime: 6
+  nukeBulletPrefab: {fileID: 8150908567595641732, guid: b3444107dad52e64cbc5c65afdf4ad23, type: 3}
   reloadOverlayImage: {fileID: 0}
   muzzleFlash3D: {fileID: 0}
   muzzleFlashVFX: {fileID: 5460789273636381479}

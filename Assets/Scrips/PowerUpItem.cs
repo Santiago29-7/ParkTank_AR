@@ -26,20 +26,15 @@ public class PowerUpItem : MonoBehaviour
     public Material yellowMat;
     public Material redMat;
 
-    [Header("Efecto de Humo/Partículas en el Tanque")]
+    [Header("Efectos")]
     public GameObject healVFXPrefab;
-
-    [Header("Sonido (Opcional)")]
     public AudioClip pickupSFX;
 
     private bool isCollected = false;
 
     void Awake()
     {
-        if (boxRenderer == null)
-        {
-            boxRenderer = GetComponentInChildren<Renderer>();
-        }
+        if (boxRenderer == null) boxRenderer = GetComponentInChildren<Renderer>();
     }
 
     void Start()
@@ -57,11 +52,7 @@ public class PowerUpItem : MonoBehaviour
 
     public void UpdateBoxMaterial()
     {
-        if (boxRenderer == null)
-        {
-            boxRenderer = GetComponentInChildren<Renderer>();
-        }
-
+        if (boxRenderer == null) boxRenderer = GetComponentInChildren<Renderer>();
         if (boxRenderer == null) return;
 
         switch (tier)
@@ -113,48 +104,35 @@ public class PowerUpItem : MonoBehaviour
         switch (tier)
         {
             case PowerUpTier.White_Basic:
-                // 1. Si la salud ya está al 100%, muestra "¡Salud Completa!"
                 if (tankHealth.currentHealth >= tankHealth.maxHealth)
                 {
-                    if (PopupNotification.Instance != null)
-                    {
-                        PopupNotification.Instance.ShowMessage("¡Salud Completa!", Color.green);
-                    }
+                    if (PopupNotification.Instance != null) PopupNotification.Instance.ShowMessage("¡Salud Completa!", Color.green);
                 }
                 else
                 {
-                    // 2. Si le falta vida, la restaura y lanza el efecto VFX y el texto verde
                     tankHealth.HealPercent(0.20f);
-
                     if (healVFXPrefab != null)
                     {
                         GameObject vfx = Instantiate(healVFXPrefab, tankHealth.transform.position, Quaternion.identity, tankHealth.transform);
                         Destroy(vfx, 2.5f);
                     }
-
-                    if (PopupNotification.Instance != null)
-                    {
-                        PopupNotification.Instance.ShowMessage("¡+20% SALUD REPARADA!", Color.green);
-                    }
+                    if (PopupNotification.Instance != null) PopupNotification.Instance.ShowMessage("¡+20% SALUD REPARADA!", Color.green);
                 }
                 break;
 
             case PowerUpTier.Green_Uncommon:
-                tankHealth.ActivateShield();
-
-                if (PopupNotification.Instance != null)
-                {
-                    PopupNotification.Instance.ShowMessage("¡BLINDAJE ACTIVADO, ERES INMUNE AL SIGUIENTE DISPARO APROVECHALO!", Color.green);
-                }
-                break;
-
-            case PowerUpTier.Blue_Rare:
+                tankHealth.ActivateShield(10f);
+                if (PopupNotification.Instance != null) PopupNotification.Instance.ShowMessage("¡ESCUDO TEMPORAL ACTIVADO POR 10 SEGUNDOS!", Color.green);
                 break;
 
             case PowerUpTier.Yellow_Epic:
-                break;
+                // Le enviamos un mensaje al tanque para que active el modo Nuke en su próximo disparo
+                tankHealth.gameObject.SendMessage("ActivateNukeMode", SendMessageOptions.DontRequireReceiver);
 
-            case PowerUpTier.Red_Legendary:
+                if (PopupNotification.Instance != null)
+                {
+                    PopupNotification.Instance.ShowMessage("¡PROYECTIL TÁCTICO CARGADO!", Color.yellow);
+                }
                 break;
         }
     }
@@ -173,15 +151,11 @@ public class PowerUpItem : MonoBehaviour
 
             float scaleMultiplier = Mathf.Lerp(1f, 0f, progress);
             transform.localScale = initialScale * scaleMultiplier;
-
-            // Elevación suave durante la animación
             transform.position = initialPosition + new Vector3(0f, progress * 0.25f, 0f);
-
             transform.Rotate(0f, 720f * Time.deltaTime, 0f);
 
             yield return null;
         }
-
         Destroy(gameObject);
     }
 }

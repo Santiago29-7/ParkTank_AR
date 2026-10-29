@@ -1101,7 +1101,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerUpSpawner
   powerUpPrefab: {fileID: 2480086338011278023, guid: f33d359d49ea45649bc8528cd09148aa, type: 3}
-  whiteBoxChance: 0.7
+  whiteBoxChance: 0.292
+  greenBoxChance: 0.319
   minDistance: 0.8
   maxDistance: 2.2
   heightAbovePlane: 0

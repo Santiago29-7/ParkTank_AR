@@ -13,10 +13,12 @@ public class TankHealth : MonoBehaviourPun
     [Header("Configuración de UI")]
     public Slider healthSlider;
     public TMP_Text healthText;
+    public TMP_Text damageText; // Referencia al texto flotante de daño
 
     [Header("Configuración de Blindaje")]
     public bool hasShield = false;
     public GameObject shieldVFX;
+    private Coroutine shieldCoroutine;
 
     [Header("Efectos de Muerte y Explosión")]
     public GameObject deathVFXPrefab;
@@ -30,6 +32,8 @@ public class TankHealth : MonoBehaviourPun
     public float turretHorizontalSpread = 1.0f;
 
     private bool isDead = false;
+    private Coroutine damageTextCoroutine;
+    private Vector3 originalDamageTextPos;
 
     void Start()
     {
@@ -54,6 +58,26 @@ public class TankHealth : MonoBehaviourPun
             if (textObj != null) healthText = textObj.GetComponent<TMP_Text>();
         }
 
+        // Búsqueda e inicialización del DamageText
+        if (damageText == null)
+        {
+            TMP_Text[] texts = GetComponentsInChildren<TMP_Text>(true);
+            foreach (TMP_Text t in texts)
+            {
+                if (t.gameObject.name.ToLower().Contains("damage"))
+                {
+                    damageText = t;
+                    break;
+                }
+            }
+        }
+
+        if (damageText != null)
+        {
+            originalDamageTextPos = damageText.transform.localPosition;
+            damageText.gameObject.SetActive(false);
+        }
+
         FindShieldReference();
         if (shieldVFX != null) shieldVFX.SetActive(hasShield);
         UpdateUI();
@@ -68,14 +92,44 @@ public class TankHealth : MonoBehaviourPun
         }
     }
 
-    public void ActivateShield()
+    // --- SISTEMA DE ESCUDO POR TIEMPO ---
+    public void ActivateShield(float duration = 10f)
     {
-        FindShieldReference();
-        hasShield = true;
-        if (shieldVFX != null) shieldVFX.SetActive(true);
+        if (!PhotonNetwork.IsConnected || photonView == null || photonView.ViewID == 0)
+        {
+            RPC_ActivateShield(duration);
+            return;
+        }
+
+        photonView.RPC("RPC_ActivateShield", RpcTarget.All, duration);
     }
 
-    // --- SISTEMA DE DAÑO CORREGIDO (SOPORTA RED E IA LOCAL) ---
+    [PunRPC]
+    void RPC_ActivateShield(float duration)
+    {
+        FindShieldReference();
+
+        if (shieldCoroutine != null)
+        {
+            StopCoroutine(shieldCoroutine);
+        }
+
+        shieldCoroutine = StartCoroutine(ShieldTimerRoutine(duration));
+    }
+
+    private IEnumerator ShieldTimerRoutine(float duration)
+    {
+        hasShield = true;
+        if (shieldVFX != null) shieldVFX.SetActive(true);
+
+        yield return new WaitForSeconds(duration);
+
+        hasShield = false;
+        if (shieldVFX != null) shieldVFX.SetActive(false);
+        shieldCoroutine = null;
+    }
+
+    // --- SISTEMA DE DAÑO CORREGIDO ---
     public void TakeDamage(float amount)
     {
         if (isDead) return;
@@ -84,14 +138,14 @@ public class TankHealth : MonoBehaviourPun
             ? PhotonNetwork.LocalPlayer.ActorNumber
             : -1;
 
-        // Si no hay red, no hay PhotonView o el ViewID es 0 (Enemigo IA local), se procesa localmente
-        if (!PhotonNetwork.IsConnected || photonView == null || photonView.ViewID == 0)
+        // Si el tanque es de la IA (ViewID <= 0) o no hay red, le aplica el daño directamente a ESTE objeto
+        if (!PhotonNetwork.IsConnected || photonView == null || photonView.ViewID <= 0)
         {
             RPC_ApplyDamageAndCheckKill(amount, shooterActorNumber);
             return;
         }
 
-        // Si es un objeto sincronizado en la red (otro jugador)
+        // Si es un jugador real en red, sincroniza el daño a través de Photon
         photonView.RPC("RPC_ApplyDamageAndCheckKill", RpcTarget.All, amount, shooterActorNumber);
     }
 
@@ -102,13 +156,15 @@ public class TankHealth : MonoBehaviourPun
 
         if (hasShield)
         {
-            hasShield = false;
-            if (shieldVFX != null) shieldVFX.SetActive(false);
+            Debug.Log("[TankHealth] ¡Daño bloqueado por el escudo activo!");
             return;
         }
 
         currentHealth = Mathf.Max(currentHealth - amount, 0f);
         UpdateUI();
+
+        // Mostrar texto flotante de daño recibido
+        ShowDamageNumber(amount);
 
         if (currentHealth <= 0f)
         {
@@ -135,6 +191,51 @@ public class TankHealth : MonoBehaviourPun
                 if (gm != null) gm.TriggerGameOver();
             }
         }
+    }
+
+    private void ShowDamageNumber(float amount)
+    {
+        if (damageText == null) return;
+
+        if (damageTextCoroutine != null)
+        {
+            StopCoroutine(damageTextCoroutine);
+        }
+
+        damageTextCoroutine = StartCoroutine(ShowDamageRoutine(amount));
+    }
+
+    private IEnumerator ShowDamageRoutine(float amount)
+    {
+        damageText.transform.localPosition = originalDamageTextPos;
+        damageText.text = "-" + Mathf.RoundToInt(amount).ToString();
+
+        // Color naranja/amarillo si el impacto es fuerte (>20), o rojo para estándar
+        damageText.color = amount > 20f ? new Color(1f, 0.5f, 0f, 1f) : new Color(1f, 0.2f, 0.2f, 1f);
+        damageText.gameObject.SetActive(true);
+
+        float duration = 0.85f;
+        float elapsed = 0f;
+
+        Vector3 startPos = originalDamageTextPos;
+        Vector3 targetPos = startPos + new Vector3(0f, 18f, 0f); // Elevación gradual en Canvas
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float progress = elapsed / duration;
+
+            damageText.transform.localPosition = Vector3.Lerp(startPos, targetPos, progress);
+
+            Color c = damageText.color;
+            c.a = Mathf.Lerp(1f, 0f, progress);
+            damageText.color = c;
+
+            yield return null;
+        }
+
+        damageText.gameObject.SetActive(false);
+        damageText.transform.localPosition = originalDamageTextPos;
     }
 
     void PlayDeathEffects()

@@ -1,9 +1,8 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
-using Photon.Pun; // 1. Librería de Photon añadida
+using Photon.Pun;
 
-// 2. Heredamos de MonoBehaviourPun para tener acceso a photonView
 public class TankController : MonoBehaviourPun
 {
     [Header("Referencias de Joysticks")]
@@ -20,6 +19,9 @@ public class TankController : MonoBehaviourPun
     public float reloadTime = 6.0f;
     private float nextFireTime = 0f;
     private float lastFireTime = -999f;
+
+    [Header("Mecánica Caja Amarilla (Doble Daño)")]
+    private int doubleDamageShotsLeft = 0; // Contador de disparos potenciados
 
     [Header("UI de Recarga")]
     public Image reloadOverlayImage;
@@ -45,7 +47,6 @@ public class TankController : MonoBehaviourPun
     public float turnSpeed = 2f;
     public float turretRotateSpeed = 40f;
 
-    // Control de estado interno
     private bool isEngineReady = false;
     private bool isMoving = false;
     private Camera mainCamera;
@@ -54,7 +55,6 @@ public class TankController : MonoBehaviourPun
     {
         mainCamera = Camera.main;
 
-        // 3. SOLO conectamos los joysticks si el tanque es nuestro
         if (photonView.IsMine)
         {
             AutoConnectJoysticks();
@@ -111,7 +111,6 @@ public class TankController : MonoBehaviourPun
 
     void Update()
     {
-        // 4. ESTA ES LA LÍNEA MÁGICA: Si el tanque no es tuyo, el código se detiene aquí y no lee tus controles
         if (!photonView.IsMine) return;
 
         if (leftJoystick == null || rightJoystick == null || reloadOverlayImage == null || muzzleFlash3D == null)
@@ -158,7 +157,6 @@ public class TankController : MonoBehaviourPun
 
     void AutoConnectJoysticks()
     {
-        // Importante: Asegúrate de que los nombres "LeftJoystick" y "RightJoystick" coincidan exactamente con tu jerarquía en Unity
         if (leftJoystick == null)
         {
             GameObject leftObj = GameObject.Find("LeftJoystick");
@@ -332,19 +330,20 @@ public class TankController : MonoBehaviourPun
         }
     }
 
+    // --- MÉTODOS DE DISPARO ---
+
+    // Mantenemos el nombre de la función para no romper el script de la caja en Unity
+    public void ActivateNukeMode()
+    {
+        // Al recoger la caja, se otorgan 2 disparos potenciados
+        doubleDamageShotsLeft = 2;
+    }
+
     void Shoot()
     {
         if (!isEngineReady) return;
-
-        if (Time.time < nextFireTime)
-        {
-            return;
-        }
-
-        if (bulletPrefab == null || cannonMuzzle == null)
-        {
-            return;
-        }
+        if (Time.time < nextFireTime) return;
+        if (cannonMuzzle == null || bulletPrefab == null) return;
 
         lastFireTime = Time.time;
         nextFireTime = Time.time + reloadTime;
@@ -352,8 +351,8 @@ public class TankController : MonoBehaviourPun
         if (trajectoryLine != null)
             trajectoryLine.enabled = false;
 
-        // OJO: Si quieres que el otro jugador vea tus balas, más adelante cambiaremos Instantiate() por PhotonNetwork.Instantiate()
-        GameObject bullet = Instantiate(bulletPrefab, cannonMuzzle.position, cannonMuzzle.rotation);
+        Vector3 spawnPosition = cannonMuzzle.position + (cannonMuzzle.forward * 0.2f);
+        GameObject bullet = Instantiate(bulletPrefab, spawnPosition, cannonMuzzle.rotation);
 
         Collider bulletCollider = bullet.GetComponent<Collider>();
         Collider[] tankColliders = GetComponentsInChildren<Collider>();
@@ -365,16 +364,31 @@ public class TankController : MonoBehaviourPun
             }
         }
 
-        TankBullet bulletScript = bullet.GetComponent<TankBullet>();
-        if (bulletScript != null)
-        {
-            bulletScript.SetGroundYLevel(transform.position.y - 0.03f);
-        }
-
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
         if (rb != null)
         {
             rb.AddForce(cannonMuzzle.forward * bulletForce, ForceMode.Impulse);
+        }
+
+        // Revisar si tenemos disparos de doble daño acumulados
+        bool isDoubleDamage = false;
+        if (doubleDamageShotsLeft > 0)
+        {
+            isDoubleDamage = true;
+            doubleDamageShotsLeft--; // Restamos 1 carga
+        }
+
+        TankBullet bulletScript = bullet.GetComponent<TankBullet>();
+        if (bulletScript != null)
+        {
+            bulletScript.SetShooter(gameObject); // <--- AÑADIR ESTA LÍNEA
+            bulletScript.SetGroundYLevel(transform.position.y - 0.03f);
+
+            // Si tiene carga de doble daño, activamos la función en la bala
+            if (isDoubleDamage)
+            {
+                bulletScript.EnableDoubleDamage();
+            }
         }
 
         if (muzzleFlash3D != null) muzzleFlash3D.TriggerFlash();

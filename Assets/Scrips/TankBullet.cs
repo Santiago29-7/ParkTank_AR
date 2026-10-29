@@ -5,6 +5,7 @@ public class TankBullet : MonoBehaviour
 {
     [Header("Configuración de Daño")]
     public float damage = 15f;
+    private float damageMultiplier = 1f; // Multiplicador de daño añadido
 
     [Header("Efectos de Impacto")]
     public GameObject explosionVFXPrefab;
@@ -54,6 +55,15 @@ public class TankBullet : MonoBehaviour
         groundYLevel = tankYPosition;
     }
 
+    // --- NUEVA FUNCIÓN PARA ACTIVAR EL DOBLE DAÑO ---
+    public void EnableDoubleDamage()
+    {
+        damageMultiplier = 2f;
+
+        // Aumenta el tamaño visual de la bala un 50% para que se note el poder extra
+        transform.localScale *= 1.5f;
+    }
+
     void Update()
     {
         if (hasImpacted) return;
@@ -76,8 +86,9 @@ public class TankBullet : MonoBehaviour
 
         if (health != null)
         {
-            // Simplemente le pasamos el daño al tanque. Él mismo se encargará de validar si debe aplicarlo.
-            health.TakeDamage(damage);
+            // Se calcula el daño final multiplicando la base por el multiplicador
+            float finalDamage = damage * damageMultiplier;
+            health.TakeDamage(finalDamage);
 
             ContactPoint hit = collision.contacts[0];
             SpawnImpact(hit.point, Quaternion.LookRotation(hit.normal));
