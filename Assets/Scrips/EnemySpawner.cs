@@ -86,8 +86,13 @@ public class EnemySpawner : MonoBehaviour
     // --- MÉTODO PARA REINICIAR EL SPAWNER EN AR ---
     public void ResetSpawner()
     {
+        // Detener corrutinas anteriores de spawn si existen
         StopAllCoroutines();
-        playerTransform = null;
-        isSpawningStarted = false;
+
+        // Reiniciar la rutina de generación de enemigos
+        StartCoroutine(SpawnEnemiesRoutine());
+       // StopAllCoroutines();
+        //playerTransform = null;
+        //isSpawningStarted = false;
     }
 }

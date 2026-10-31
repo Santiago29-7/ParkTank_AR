@@ -5,7 +5,7 @@ public class TankBullet : MonoBehaviour
 {
     [Header("Configuración de Daño")]
     public float damage = 15f;
-    private float damageMultiplier = 1f; // Multiplicador de daño añadido
+    private float damageMultiplier = 1f;
 
     [Header("Efectos de Impacto")]
     public GameObject explosionVFXPrefab;
@@ -55,12 +55,9 @@ public class TankBullet : MonoBehaviour
         groundYLevel = tankYPosition;
     }
 
-    // --- NUEVA FUNCIÓN PARA ACTIVAR EL DOBLE DAÑO ---
     public void EnableDoubleDamage()
     {
         damageMultiplier = 2f;
-
-        // Aumenta el tamaño visual de la bala un 50% para que se note el poder extra
         transform.localScale *= 1.5f;
     }
 
@@ -77,16 +74,24 @@ public class TankBullet : MonoBehaviour
     {
         if (hasImpacted) return;
 
+        // 1. Ignorar si el collider tocado es un Trigger invisible (como la UI o áreas de IA)
+        if (collision.collider.isTrigger) return;
+
+        // 2. Ignorar si la colisión es con el propio tanque emisor
         if (shooterOwner != null && (collision.gameObject == shooterOwner || collision.transform.IsChildOf(shooterOwner.transform)))
         {
             return;
         }
 
+        // 3. Buscar el componente TankHealth en el objeto o sus padres
         TankHealth health = collision.gameObject.GetComponentInParent<TankHealth>();
 
         if (health != null)
         {
-            // Se calcula el daño final multiplicando la base por el multiplicador
+            // Ignorar si por alguna razón el health encontrado pertenece al que disparó
+            if (shooterOwner != null && health.gameObject == shooterOwner) return;
+
+            // Aplicar daño únicamente por impacto directo con el modelo del tanque
             float finalDamage = damage * damageMultiplier;
             health.TakeDamage(finalDamage);
 
@@ -95,16 +100,11 @@ public class TankBullet : MonoBehaviour
             return;
         }
 
-        float contactY = collision.contacts[0].point.y;
-        if (useVirtualGround && contactY > (groundYLevel + 0.3f) && !collision.gameObject.CompareTag("Enemy") && !collision.gameObject.CompareTag("Player"))
-        {
-            return;
-        }
-
+        // 4. Si chocó contra el suelo o un obstáculo, solo generar impacto visual
         ContactPoint contact = collision.contacts[0];
         Quaternion hitRotation = Quaternion.LookRotation(contact.normal);
-
         if (explosionVFXPrefab != null) hitRotation *= explosionVFXPrefab.transform.rotation;
+
         SpawnImpact(contact.point, hitRotation);
     }
 

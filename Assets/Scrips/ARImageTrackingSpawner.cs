@@ -4,15 +4,25 @@ using Photon.Pun;
 
 public class ARImageTrackingSpawner : MonoBehaviour
 {
+    [Header("UI de Instrucciones y Controles")]
+    public GameObject qrInstructionPanel; // Recuadro "Apunta la cámara al código QR"
+    public GameObject hudPanel;           // Contenedor del HUD (joysticks, salud, etc.)
+
     [Header("Referencias AR")]
     public ARTrackedImageManager trackedImageManager;
-    public GameObject arenaPrefab; // Objeto de la arena / mapa
+    public GameObject arenaPrefab; 
 
     [Header("Photon Config")]
-    [Tooltip("El Prefab del tanque DEBE estar dentro de Assets/Resources/")]
     public string tankPrefabName = "TankPrefab";
 
     private bool hasSpawned = false;
+
+    void Start()
+    {
+        // Estado inicial: Solicitar código QR
+        if (qrInstructionPanel != null) qrInstructionPanel.SetActive(true);
+        if (hudPanel != null) hudPanel.SetActive(false);
+    }
 
     void OnEnable()
     {
@@ -28,6 +38,7 @@ public class ARImageTrackingSpawner : MonoBehaviour
 
     void OnTrackedImagesChanged(ARTrackedImagesChangedEventArgs eventArgs)
     {
+        // Solo instanciar si no ha aparecido y la cámara detecta/actualiza el rastreo del QR
         foreach (var trackedImage in eventArgs.added)
         {
             if (!hasSpawned && trackedImage.trackingState == UnityEngine.XR.ARSubsystems.TrackingState.Tracking)
@@ -50,33 +61,24 @@ public class ARImageTrackingSpawner : MonoBehaviour
         if (hasSpawned) return;
         hasSpawned = true;
 
-        // 1. Instanciar la arena localmente sobre el código QR
-        if (arenaPrefab != null)
-        {
-            //Instantiate(arenaPrefab, imageTransform.position, imageTransform.rotation);
-        }
+        // Ocultar mensaje QR y encender la interfaz del juego
+        if (qrInstructionPanel != null) qrInstructionPanel.SetActive(false);
+        if (hudPanel != null) hudPanel.SetActive(true);
 
-        // 2. Calcular posición del tanque según el rol del jugador (Anfitrión a la izquierda, Cliente a la derecha)
         Vector3 offset = PhotonNetwork.IsMasterClient ? new Vector3(-0.3f, 0f, 0f) : new Vector3(0.3f, 0f, 0f);
         Vector3 spawnPosition = imageTransform.TransformPoint(offset);
         Quaternion spawnRotation = imageTransform.rotation;
 
-        // 3. Instanciar el tanque en red usando Photon
         PhotonNetwork.Instantiate(tankPrefabName, spawnPosition, spawnRotation);
     }
 
-    // --- ESTA ES LA FUNCIÓN NUEVA QUE EL GAMEMANAGER NECESITA ---
-    public void RespawnTankLocal()
+    // --- REINICIAR ESTADO Y OBLIGAR A ESCANEAR EL QR OTRA VEZ ---
+    public void ResetSpawner()
     {
-        foreach (var trackedImage in trackedImageManager.trackables)
-        {
-            if (trackedImage.trackingState == UnityEngine.XR.ARSubsystems.TrackingState.Tracking)
-            {
-                Vector3 offset = PhotonNetwork.IsMasterClient ? new Vector3(-0.3f, 0f, 0f) : new Vector3(0.3f, 0f, 0f);
-                Vector3 spawnPosition = trackedImage.transform.TransformPoint(offset);
-                PhotonNetwork.Instantiate(tankPrefabName, spawnPosition, trackedImage.transform.rotation);
-                return;
-            }
-        }
+        hasSpawned = false;
+
+        // Mostrar pantalla de instrucción QR y ocultar el HUD hasta que se enfoque la tarjeta
+        if (qrInstructionPanel != null) qrInstructionPanel.SetActive(true);
+        if (hudPanel != null) hudPanel.SetActive(false);
     }
 }

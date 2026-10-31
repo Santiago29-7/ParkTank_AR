@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
@@ -24,13 +25,11 @@ public class MainMenuManager : MonoBehaviour
 
         if (string.IsNullOrEmpty(savedNickname))
         {
-            // Primera vez: mostrar solo la ventana del nickname y ocultar el menú
             if (nicknamePanel != null) nicknamePanel.SetActive(true);
             if (mainButtonsPanel != null) mainButtonsPanel.SetActive(false);
         }
         else
         {
-            // Ya registrado: ocultar ventana y activar el menú principal
             if (nicknamePanel != null) nicknamePanel.SetActive(false);
             if (mainButtonsPanel != null) mainButtonsPanel.SetActive(true);
             ApplyNickname(savedNickname);
@@ -45,7 +44,6 @@ public class MainMenuManager : MonoBehaviour
 
         if (string.IsNullOrEmpty(enteredName)) return;
 
-        // Guardar el nombre en el dispositivo
         if (dbManager != null)
         {
             dbManager.SaveNickname(enteredName);
@@ -53,7 +51,6 @@ public class MainMenuManager : MonoBehaviour
 
         ApplyNickname(enteredName);
 
-        // Transición: cerrar la ventana emergente y activar los botones del menú
         if (nicknamePanel != null) nicknamePanel.SetActive(false);
         if (mainButtonsPanel != null) mainButtonsPanel.SetActive(true);
     }
@@ -68,15 +65,48 @@ public class MainMenuManager : MonoBehaviour
         }
     }
 
+    // --- MODO UN JUGADOR CORREGIDO ---
     public void PlaySingleplayer()
     {
-        Debug.Log("[MainMenu] Cargando modo Un Jugador...");
+        Debug.Log("[MainMenu] Preparando sala Offline...");
+        StartCoroutine(PrepareOfflineAndLoadRoutine());
+    }
+
+    private IEnumerator PrepareOfflineAndLoadRoutine()
+    {
+        // 1. Desconectar de cualquier servidor activo
+        if (PhotonNetwork.IsConnected)
+        {
+            PhotonNetwork.Disconnect();
+            while (PhotonNetwork.IsConnected)
+            {
+                yield return null;
+            }
+        }
+
+        // 2. Activar modo offline
+        PhotonNetwork.OfflineMode = true;
+
+        // 3. Crear explícitamente la sala local fuera de línea
+        PhotonNetwork.CreateRoom("OfflineRoom");
+
+        // 4. ESPERAR HASTA QUE PHOTON CONFIRME QUE ESTAMOS DENTRO DE LA SALA (InRoom)
+        while (!PhotonNetwork.InRoom)
+        {
+            yield return null;
+        }
+
+        Debug.Log("[MainMenu] ¡Sala Offline lista y unida! Cargando escena...");
+
+        // 5. Cargar la escena de juego de forma segura
         SceneManager.LoadScene(singleplayerSceneName);
     }
 
     public void PlayMultiplayer()
     {
         Debug.Log("[MainMenu] Cargando modo Multijugador...");
+
+        PhotonNetwork.OfflineMode = false;
         SceneManager.LoadScene(multiplayerSceneName);
     }
 

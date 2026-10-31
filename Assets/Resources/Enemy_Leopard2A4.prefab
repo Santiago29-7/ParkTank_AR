@@ -754,8 +754,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 4.0886307, y: 3.4058273, z: 8.322998}
-  m_Center: {x: -0.0064400956, y: 1.6657978, z: 0.02087392}
+  m_Size: {x: 3.6621313, y: 3.0646217, z: 7.768561}
+  m_Center: {x: -0.0064400956, y: 1.495195, z: -0.08574352}
 --- !u!114 &6918931416829034278
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -799,6 +799,7 @@ MonoBehaviour:
   currentHealth: 0
   healthSlider: {fileID: 2114853643297383990}
   healthText: {fileID: 7784674630148849241}
+  damageText: {fileID: 0}
   hasShield: 0
   shieldVFX: {fileID: 0}
   deathVFXPrefab: {fileID: 919132149155446097, guid: 173c2880d4f4465458ac741161712c6b, type: 3}

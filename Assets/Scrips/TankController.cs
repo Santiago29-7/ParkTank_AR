@@ -15,7 +15,7 @@ public class TankController : MonoBehaviourPun
     [Header("Mecánica de Disparo")]
     public GameObject bulletPrefab;
     public Transform cannonMuzzle;
-    public float bulletForce = 25f;
+    public float bulletForce = 6f;
     public float reloadTime = 6.0f;
     private float nextFireTime = 0f;
     private float lastFireTime = -999f;
@@ -49,6 +49,7 @@ public class TankController : MonoBehaviourPun
 
     private bool isEngineReady = false;
     private bool isMoving = false;
+    private bool canMove = true; // Control de inmovilización (por reparación)
     private Camera mainCamera;
 
     void Start()
@@ -78,6 +79,19 @@ public class TankController : MonoBehaviourPun
 
         StartCoroutine(StartEngineSequence());
     }
+
+    // --- MÉTODO PARA BLOQUEAR / DESBLOQUEAR EL MOVIMIENTO (USADO POR REPARACIÓN) ---
+    public void SetCanMove(bool state)
+    {
+        canMove = state;
+        if (!canMove)
+        {
+            isMoving = false;
+            if (trajectoryLine != null) trajectoryLine.enabled = false;
+        }
+    }
+
+    public bool CanMove => canMove;
 
     IEnumerator StartEngineSequence()
     {
@@ -196,7 +210,11 @@ public class TankController : MonoBehaviourPun
 
     void MoveChassis()
     {
-        if (leftJoystick == null) return;
+        if (!canMove || leftJoystick == null)
+        {
+            isMoving = false;
+            return;
+        }
 
         float moveX = leftJoystick.Horizontal;
         float moveZ = leftJoystick.Vertical;
@@ -226,7 +244,7 @@ public class TankController : MonoBehaviourPun
 
     void RotateTurret()
     {
-        if (rightJoystick == null || torretaPivot == null) return;
+        if (!canMove || rightJoystick == null || torretaPivot == null) return;
 
         float turretX = rightJoystick.Horizontal;
         float turretZ = rightJoystick.Vertical;
@@ -257,7 +275,11 @@ public class TankController : MonoBehaviourPun
 
     void UpdateTrajectory()
     {
-        if (trajectoryLine == null || cannonMuzzle == null || rightJoystick == null) return;
+        if (!canMove || trajectoryLine == null || cannonMuzzle == null || rightJoystick == null)
+        {
+            if (trajectoryLine != null) trajectoryLine.enabled = false;
+            return;
+        }
 
         float turretX = rightJoystick.Horizontal;
         float turretZ = rightJoystick.Vertical;
@@ -330,17 +352,14 @@ public class TankController : MonoBehaviourPun
         }
     }
 
-    // --- MÉTODOS DE DISPARO ---
-
-    // Mantenemos el nombre de la función para no romper el script de la caja en Unity
     public void ActivateNukeMode()
     {
-        // Al recoger la caja, se otorgan 2 disparos potenciados
         doubleDamageShotsLeft = 2;
     }
 
     void Shoot()
     {
+        if (!canMove) return;
         if (!isEngineReady) return;
         if (Time.time < nextFireTime) return;
         if (cannonMuzzle == null || bulletPrefab == null) return;
@@ -370,21 +389,19 @@ public class TankController : MonoBehaviourPun
             rb.AddForce(cannonMuzzle.forward * bulletForce, ForceMode.Impulse);
         }
 
-        // Revisar si tenemos disparos de doble daño acumulados
         bool isDoubleDamage = false;
         if (doubleDamageShotsLeft > 0)
         {
             isDoubleDamage = true;
-            doubleDamageShotsLeft--; // Restamos 1 carga
+            doubleDamageShotsLeft--;
         }
 
         TankBullet bulletScript = bullet.GetComponent<TankBullet>();
         if (bulletScript != null)
         {
-            bulletScript.SetShooter(gameObject); // <--- AÑADIR ESTA LÍNEA
+            bulletScript.SetShooter(gameObject);
             bulletScript.SetGroundYLevel(transform.position.y - 0.03f);
 
-            // Si tiene carga de doble daño, activamos la función en la bala
             if (isDoubleDamage)
             {
                 bulletScript.EnableDoubleDamage();

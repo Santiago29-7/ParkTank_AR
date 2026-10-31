@@ -109,6 +109,7 @@ public class PowerUpSpawner : MonoBehaviour
 
     public void ResetSpawner()
     {
+        // 1. Cancelar invocaciones activas y limpiar referencias previas
         CancelInvoke(nameof(TrySpawnPowerUp));
         playerTransform = null;
 
@@ -119,5 +120,12 @@ public class PowerUpSpawner : MonoBehaviour
         currentPowerUp = null;
 
         isSpawnerStarted = false;
+
+        // 2. Volver a iniciar el ciclo de generación de cajas (ajusta los tiempos si usas variables públicas)
+        // Ejemplo: inicia en 3 segundos y se repite cada 10 segundos
+        float initialDelay = 3f;
+        float repeatRate = 10f;
+
+        InvokeRepeating(nameof(TrySpawnPowerUp), initialDelay, repeatRate);
     }
 }

@@ -8,9 +8,13 @@ public class GameManager : MonoBehaviourPunCallbacks
     [Header("Interfaz Deathmatch")]
     public GameObject gameOverPanel;
     public TMP_Text gameOverText;
-    public GameObject respawnButton;
-    public GameObject exitButton;
+    public GameObject respawnButton; // Botón REAPARECER (Btn_Reiniciar)
+    public GameObject exitButton;    // Botón MENÚ PRINCIPAL (Btn_Salir)
+    public GameObject hudPanel;      // Contenedor del HUD
     public TMP_Text killCounterText;
+
+    [Header("Referencias Spawner")]
+    public ARImageTrackingSpawner arSpawner;
 
     [Header("Efectos de Sonido")]
     public AudioClip gameOverSFX;
@@ -29,19 +33,24 @@ public class GameManager : MonoBehaviourPunCallbacks
         if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
 
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
-        if (exitButton != null) exitButton.SetActive(false);
-        if (respawnButton != null) respawnButton.SetActive(true);
+
+        if (arSpawner == null) arSpawner = FindFirstObjectByType<ARImageTrackingSpawner>();
 
         UpdateKillUI();
     }
 
+    // --- SE EJECUTA AL MORIR EL JUGADOR ---
     public void TriggerGameOver()
     {
         if (isMatchOver) return;
 
+        // 1. Mostrar pantalla de Game Over y ocultar el HUD de controles
         if (gameOverPanel != null) gameOverPanel.SetActive(true);
-        if (gameOverText != null) gameOverText.text = "¡TANQUE DESTRUIDO!";
+        if (hudPanel != null) hudPanel.SetActive(false);
 
+        if (gameOverText != null) gameOverText.text = "GAME OVER";
+
+        // 2. Activar ambos botones (REAPARECER y MENÚ PRINCIPAL)
         if (respawnButton != null)
         {
             respawnButton.SetActive(true);
@@ -49,7 +58,15 @@ public class GameManager : MonoBehaviourPunCallbacks
             if (respawnText != null) respawnText.text = "REAPARECER";
         }
 
-        if (exitButton != null) exitButton.SetActive(false);
+        if (exitButton != null)
+        {
+            exitButton.SetActive(true);
+            TMP_Text exitText = exitButton.GetComponentInChildren<TMP_Text>();
+            if (exitText != null) exitText.text = "MENÚ PRINCIPAL";
+        }
+
+        // 3. Limpiar tanques enemigos y cajas de poder del mapa
+        CleanUpWorldObjects();
 
         if (gameOverSFX != null && audioSource != null)
         {
@@ -57,16 +74,57 @@ public class GameManager : MonoBehaviourPunCallbacks
         }
     }
 
+    // Destruye los objetos activos en el escenario al terminar la ronda o morir
+    private void CleanUpWorldObjects()
+    {
+        EnemyTankAI[] enemies = FindObjectsByType<EnemyTankAI>(FindObjectsSortMode.None);
+        foreach (var enemy in enemies)
+        {
+            Destroy(enemy.gameObject);
+        }
+
+        PowerUpItem[] powerups = FindObjectsByType<PowerUpItem>(FindObjectsSortMode.None);
+        foreach (var item in powerups)
+        {
+            Destroy(item.gameObject);
+        }
+    }
+
+    // --- MÉTODO DEL BOTÓN REAPARECER ---
     public void RespawnPlayer()
     {
-        if (isMatchOver) return;
+        Debug.Log("[GameManager] Reiniciando partida y reapareciendo jugador...");
 
+        // 1. Restablecer contador de bajas
+        isMatchOver = false;
+        currentKills = 0;
+        UpdateKillUI();
+
+        // 2. Ocultar el panel de Game Over
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
 
-        ARImageTrackingSpawner spawner = FindFirstObjectByType<ARImageTrackingSpawner>();
-        if (spawner != null)
+        // 3. Limpiar tanques enemigos o cajas que hayan quedado vivas en escena
+        CleanUpWorldObjects();
+
+        // 4. Reiniciar el spawner de enemigos
+        EnemySpawner enemySpawner = FindFirstObjectByType<EnemySpawner>();
+        if (enemySpawner != null)
         {
-            spawner.RespawnTankLocal();
+            enemySpawner.ResetSpawner();
+        }
+
+        // 5. Reiniciar el spawner de cajas de poder (Power-Ups)
+        PowerUpSpawner powerUpSpawner = FindFirstObjectByType<PowerUpSpawner>();
+        if (powerUpSpawner != null)
+        {
+            powerUpSpawner.ResetSpawner();
+        }
+
+        // 6. Iniciar la espera para leer el QR de nuevo
+        if (arSpawner == null) arSpawner = FindFirstObjectByType<ARImageTrackingSpawner>();
+        if (arSpawner != null)
+        {
+            arSpawner.ResetSpawner();
         }
     }
 
@@ -109,6 +167,7 @@ public class GameManager : MonoBehaviourPunCallbacks
         isMatchOver = true;
 
         if (gameOverPanel != null) gameOverPanel.SetActive(true);
+        if (hudPanel != null) hudPanel.SetActive(false);
 
         if (respawnButton != null) respawnButton.SetActive(false);
 
@@ -118,9 +177,11 @@ public class GameManager : MonoBehaviourPunCallbacks
             TMP_Text exitBtnText = exitButton.GetComponentInChildren<TMP_Text>();
             if (exitBtnText != null)
             {
-                exitBtnText.text = "SALIR AL MENÚ";
+                exitBtnText.text = "MENÚ PRINCIPAL";
             }
         }
+
+        CleanUpWorldObjects();
 
         string myName = "Jugador";
         if (PhotonNetwork.IsConnected && PhotonNetwork.LocalPlayer != null && !string.IsNullOrEmpty(PhotonNetwork.NickName))
@@ -142,22 +203,19 @@ public class GameManager : MonoBehaviourPunCallbacks
         }
     }
 
-    // --- SALIDA LIMPIA DE LA SALA MULTIJUGADOR ---
+    // --- SALIDA LIMPIA DE LA SALA Y RETORNO AL MENÚ ---
     public void LeaveGame()
     {
         if (PhotonNetwork.IsConnected && PhotonNetwork.InRoom)
         {
-            // Abandonar la sala primero de forma ordenada
             PhotonNetwork.LeaveRoom();
         }
         else
         {
-            // Si estábamos jugando offline o desconectados, cambiar directamente
             SceneManager.LoadScene("MainMenu");
         }
     }
 
-    // Callback automático de Photon que se ejecuta cuando la salida de la sala se completa
     public override void OnLeftRoom()
     {
         SceneManager.LoadScene("MainMenu");
