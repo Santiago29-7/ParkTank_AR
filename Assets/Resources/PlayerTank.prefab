@@ -126,7 +126,6 @@ MonoBehaviour:
   cannonMuzzle: {fileID: 6980671145682384314}
   bulletForce: 25
   reloadTime: 6
-  nukeBulletPrefab: {fileID: 8150908567595641732, guid: b3444107dad52e64cbc5c65afdf4ad23, type: 3}
   reloadOverlayImage: {fileID: 0}
   muzzleFlash3D: {fileID: 0}
   muzzleFlashVFX: {fileID: 5460789273636381479}
@@ -364,6 +363,7 @@ MonoBehaviour:
   currentHealth: 0
   healthSlider: {fileID: 0}
   healthText: {fileID: 0}
+  damageText: {fileID: 0}
   hasShield: 0
   shieldVFX: {fileID: 4880912220300131383}
   deathVFXPrefab: {fileID: 919132149155446097, guid: 173c2880d4f4465458ac741161712c6b, type: 3}
