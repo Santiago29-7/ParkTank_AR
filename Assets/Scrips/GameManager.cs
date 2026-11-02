@@ -193,12 +193,12 @@ public class GameManager : MonoBehaviourPunCallbacks
 
         if (isWinner)
         {
-            if (gameOverText != null) gameOverText.text = "¡VICTORIA!";
+            if (gameOverText != null) gameOverText.text = "VICTORIA";
             if (victorySFX != null && audioSource != null) audioSource.PlayOneShot(victorySFX);
         }
         else
         {
-            if (gameOverText != null) gameOverText.text = "¡DERROTA!\n" + winnerName.ToUpper() + " HA GANADO";
+            if (gameOverText != null) gameOverText.text = "DERROTA\n" + winnerName.ToUpper() + " HA GANADO";
             if (gameOverSFX != null && audioSource != null) audioSource.PlayOneShot(gameOverSFX);
         }
     }

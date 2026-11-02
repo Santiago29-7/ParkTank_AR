@@ -10,7 +10,7 @@ public class ARImageTrackingSpawner : MonoBehaviour
 
     [Header("Referencias AR")]
     public ARTrackedImageManager trackedImageManager;
-    public GameObject arenaPrefab; 
+    public GameObject arenaPrefab;
 
     [Header("Photon Config")]
     public string tankPrefabName = "TankPrefab";
@@ -70,6 +70,22 @@ public class ARImageTrackingSpawner : MonoBehaviour
         Quaternion spawnRotation = imageTransform.rotation;
 
         PhotonNetwork.Instantiate(tankPrefabName, spawnPosition, spawnRotation);
+
+        // --- GENERACIÓN AUTOMÁTICA DE COBERTURAS AR ---
+        // Solo el jugador que crea la sala (MasterClient) genera los obstáculos 
+        // para asegurar que ambos jugadores compartan el mismo mapa
+        if (PhotonNetwork.IsMasterClient)
+        {
+            CoverSpawner coverSpawner = FindObjectOfType<CoverSpawner>();
+            if (coverSpawner != null)
+            {
+                coverSpawner.SpawnCovers(imageTransform.position);
+            }
+            else
+            {
+                Debug.LogWarning("ARImageTrackingSpawner: No se encontró el objeto CoverSpawner en la escena.");
+            }
+        }
     }
 
     // --- REINICIAR ESTADO Y OBLIGAR A ESCANEAR EL QR OTRA VEZ ---
