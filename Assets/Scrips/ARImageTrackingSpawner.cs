@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
-using Photon.Pun;
 
 public class ARImageTrackingSpawner : MonoBehaviour
 {
@@ -8,12 +7,10 @@ public class ARImageTrackingSpawner : MonoBehaviour
     public GameObject qrInstructionPanel; // Recuadro "Apunta la cámara al código QR"
     public GameObject hudPanel;           // Contenedor del HUD (joysticks, salud, etc.)
 
-    [Header("Referencias AR")]
+    [Header("Referencias AR y Prefabs")]
     public ARTrackedImageManager trackedImageManager;
+    public GameObject playerTankPrefab;    // Prefab del tanque del jugador local
     public GameObject arenaPrefab;
-
-    [Header("Photon Config")]
-    public string tankPrefabName = "TankPrefab";
 
     private bool hasSpawned = false;
 
@@ -43,7 +40,7 @@ public class ARImageTrackingSpawner : MonoBehaviour
         {
             if (!hasSpawned && trackedImage.trackingState == UnityEngine.XR.ARSubsystems.TrackingState.Tracking)
             {
-                SpawnNetworkObjects(trackedImage.transform);
+                SpawnLocalObjects(trackedImage.transform);
             }
         }
 
@@ -51,12 +48,12 @@ public class ARImageTrackingSpawner : MonoBehaviour
         {
             if (!hasSpawned && trackedImage.trackingState == UnityEngine.XR.ARSubsystems.TrackingState.Tracking)
             {
-                SpawnNetworkObjects(trackedImage.transform);
+                SpawnLocalObjects(trackedImage.transform);
             }
         }
     }
 
-    void SpawnNetworkObjects(Transform imageTransform)
+    void SpawnLocalObjects(Transform imageTransform)
     {
         if (hasSpawned) return;
         hasSpawned = true;
@@ -65,26 +62,33 @@ public class ARImageTrackingSpawner : MonoBehaviour
         if (qrInstructionPanel != null) qrInstructionPanel.SetActive(false);
         if (hudPanel != null) hudPanel.SetActive(true);
 
-        Vector3 offset = PhotonNetwork.IsMasterClient ? new Vector3(-0.3f, 0f, 0f) : new Vector3(0.3f, 0f, 0f);
-        Vector3 spawnPosition = imageTransform.TransformPoint(offset);
+        Vector3 spawnPosition = imageTransform.position;
         Quaternion spawnRotation = imageTransform.rotation;
 
-        PhotonNetwork.Instantiate(tankPrefabName, spawnPosition, spawnRotation);
+        if (playerTankPrefab != null)
+        {
+            GameObject playerTank = Instantiate(playerTankPrefab, spawnPosition, spawnRotation);
+
+            // Garantizar la etiqueta del jugador para la detección de la IA y los Power-Ups
+            if (!playerTank.CompareTag("Player"))
+            {
+                playerTank.tag = "Player";
+            }
+        }
+        else
+        {
+            Debug.LogError("ARImageTrackingSpawner: No has asignado el 'playerTankPrefab' en el Inspector.");
+        }
 
         // --- GENERACIÓN AUTOMÁTICA DE COBERTURAS AR ---
-        // Solo el jugador que crea la sala (MasterClient) genera los obstáculos 
-        // para asegurar que ambos jugadores compartan el mismo mapa
-        if (PhotonNetwork.IsMasterClient)
+        CoverSpawner coverSpawner = FindFirstObjectByType<CoverSpawner>();
+        if (coverSpawner != null)
         {
-            CoverSpawner coverSpawner = FindObjectOfType<CoverSpawner>();
-            if (coverSpawner != null)
-            {
-                coverSpawner.SpawnCovers(imageTransform.position);
-            }
-            else
-            {
-                Debug.LogWarning("ARImageTrackingSpawner: No se encontró el objeto CoverSpawner en la escena.");
-            }
+            coverSpawner.SpawnCovers(imageTransform.position);
+        }
+        else
+        {
+            Debug.LogWarning("ARImageTrackingSpawner: No se encontró el objeto CoverSpawner en la escena.");
         }
     }
 

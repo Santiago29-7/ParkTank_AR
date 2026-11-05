@@ -1,9 +1,8 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
-using Photon.Pun;
 
-public class TankController : MonoBehaviourPun
+public class TankController : MonoBehaviour
 {
     [Header("Referencias de Joysticks")]
     public SimpleJoystick leftJoystick;
@@ -56,10 +55,8 @@ public class TankController : MonoBehaviourPun
     {
         mainCamera = Camera.main;
 
-        if (photonView.IsMine)
-        {
-            AutoConnectJoysticks();
-        }
+        // Auto-conectar joysticks e interfaz al instanciar
+        AutoConnectJoysticks();
 
         if (trajectoryLine != null)
         {
@@ -125,8 +122,6 @@ public class TankController : MonoBehaviourPun
 
     void Update()
     {
-        if (!photonView.IsMine) return;
-
         if (leftJoystick == null || rightJoystick == null || reloadOverlayImage == null || muzzleFlash3D == null)
         {
             AutoConnectJoysticks();

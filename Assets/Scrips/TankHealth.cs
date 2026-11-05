@@ -2,9 +2,8 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using Photon.Pun;
 
-public class TankHealth : MonoBehaviourPun
+public class TankHealth : MonoBehaviour
 {
     [Header("Configuración de Salud")]
     public float maxHealth = 100f;
@@ -95,18 +94,6 @@ public class TankHealth : MonoBehaviourPun
     // --- SISTEMA DE ESCUDO POR TIEMPO ---
     public void ActivateShield(float duration = 10f)
     {
-        if (!PhotonNetwork.IsConnected || photonView == null || photonView.ViewID == 0)
-        {
-            RPC_ActivateShield(duration);
-            return;
-        }
-
-        photonView.RPC("RPC_ActivateShield", RpcTarget.All, duration);
-    }
-
-    [PunRPC]
-    void RPC_ActivateShield(float duration)
-    {
         FindShieldReference();
 
         if (shieldCoroutine != null)
@@ -129,68 +116,48 @@ public class TankHealth : MonoBehaviourPun
         shieldCoroutine = null;
     }
 
-    // --- SISTEMA DE DAÑO Y MUERTE UNIFICADO Y CORREGIDO ---
-    public void TakeDamage(float damageAmount, int shooterActorNumber = -1)
-    {
-        if (isDead) return;
-
-        if (shooterActorNumber == -1 && PhotonNetwork.IsConnected && PhotonNetwork.LocalPlayer != null)
-        {
-            shooterActorNumber = PhotonNetwork.LocalPlayer.ActorNumber;
-        }
-
-        if (PhotonNetwork.IsConnected && photonView != null && photonView.ViewID != 0)
-        {
-            photonView.RPC("RPC_ApplyDamageAndCheckKill", RpcTarget.All, damageAmount, shooterActorNumber);
-        }
-        else
-        {
-            RPC_ApplyDamageAndCheckKill(damageAmount, shooterActorNumber);
-        }
-    }
-
-    [PunRPC]
-    void RPC_ApplyDamageAndCheckKill(float amount, int shooterActorNumber)
+    // --- SISTEMA DE DAÑO Y MUERTE LOCAL CON ESTADÍSTICAS ---
+    public void TakeDamage(float damageAmount)
     {
         if (isDead) return;
 
         if (hasShield)
         {
-            Debug.Log("[TankHealth] ¡Daño bloquedo por el escudo activo!");
+            Debug.Log("[TankHealth] ¡Daño bloqueado por el escudo activo!");
             return;
         }
 
-        currentHealth = Mathf.Max(currentHealth - amount, 0f);
+        currentHealth = Mathf.Max(currentHealth - damageAmount, 0f);
         UpdateUI();
-
-        ShowDamageNumber(amount);
+        ShowDamageNumber(damageAmount);
 
         if (currentHealth <= 0f)
         {
             isDead = true;
 
-            // 1. Efectos visuales y de sonido de muerte
+            // 1. Reproducir explosión y sonidos
             PlayDeathEffects();
 
             GameManager gm = FindFirstObjectByType<GameManager>();
-
             EnemyTankAI aiComponent = GetComponent<EnemyTankAI>();
             TankController playerComponent = GetComponent<TankController>();
 
-            // 2. Si este objeto era un TANQUE ENEMIGO (IA)
+            // 2. Si se destruye un TANQUE ENEMIGO (IA)
             if (aiComponent != null)
             {
-                bool isLocalShooter = !PhotonNetwork.IsConnected ||
-                                      (PhotonNetwork.LocalPlayer != null && PhotonNetwork.LocalPlayer.ActorNumber == shooterActorNumber);
+                DatabaseManager.AddTankDestroyed(); // Incrementa tanques destruidos en estadísticas
 
-                if (isLocalShooter && gm != null)
+                if (gm != null)
                 {
                     gm.AddKill();
                 }
             }
-            // 3. Si este objeto era el TANQUE DEL JUGADOR LOCAL
-            else if (playerComponent != null && (photonView == null || photonView.IsMine || !PhotonNetwork.IsConnected))
+            // 3. Si se destruye el TANQUE DEL JUGADOR
+            else if (playerComponent != null)
             {
+                DatabaseManager.AddPlayerElimination(); // Incrementa eliminaciones sufridas
+                DatabaseManager.AddGameLost();          // Incrementa partidas perdidas
+
                 if (gm != null)
                 {
                     gm.TriggerGameOver();
@@ -279,22 +246,6 @@ public class TankHealth : MonoBehaviourPun
     public void HealPercent(float percentage)
     {
         if (isDead) return;
-
-        if (!PhotonNetwork.IsConnected || photonView == null || photonView.ViewID == 0)
-        {
-            RPC_Heal(percentage);
-            return;
-        }
-
-        if (photonView.IsMine)
-        {
-            photonView.RPC("RPC_Heal", RpcTarget.All, percentage);
-        }
-    }
-
-    [PunRPC]
-    void RPC_Heal(float percentage)
-    {
         float healAmount = maxHealth * percentage;
         currentHealth = Mathf.Min(currentHealth + healAmount, maxHealth);
         UpdateUI();
@@ -303,22 +254,6 @@ public class TankHealth : MonoBehaviourPun
     public void HealAmount(float amount)
     {
         if (isDead) return;
-
-        if (!PhotonNetwork.IsConnected || photonView == null || photonView.ViewID == 0)
-        {
-            RPC_HealAmount(amount);
-            return;
-        }
-
-        if (photonView.IsMine)
-        {
-            photonView.RPC("RPC_HealAmount", RpcTarget.All, amount);
-        }
-    }
-
-    [PunRPC]
-    void RPC_HealAmount(float amount)
-    {
         currentHealth = Mathf.Min(currentHealth + amount, maxHealth);
         UpdateUI();
     }
@@ -396,14 +331,8 @@ public class TankHealth : MonoBehaviourPun
 
         if (turret != null) Destroy(turret.gameObject);
 
-        if (PhotonNetwork.IsConnected && photonView != null && photonView.IsMine)
-        {
-            PhotonNetwork.Destroy(gameObject);
-        }
-        else if (!PhotonNetwork.IsConnected || photonView == null || photonView.ViewID == 0)
-        {
-            Destroy(gameObject);
-        }
+        // Destrucción local del GameObject
+        Destroy(gameObject);
     }
 
     IEnumerator ClampTurretToGround(Transform turret, Rigidbody turretRb, float groundY)

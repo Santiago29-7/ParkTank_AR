@@ -24,11 +24,11 @@ public class EnemySpawner : MonoBehaviour
     {
         if (isSpawningStarted) return;
 
-        // Buscar el tanque ACTIVO y VIVO del jugador
+        // Buscar el tanque ACTIVO y VIVO del jugador en la escena local
         TankController playerScript = FindFirstObjectByType<TankController>();
         if (playerScript != null && playerScript.gameObject.activeInHierarchy)
         {
-            // Verificación: Asegurar que el tanque no sea el viejo que está siendo destruido
+            // Verificación: Asegurar que el tanque tenga vida > 0
             TankHealth health = playerScript.GetComponent<TankHealth>();
             if (health != null && health.currentHealth > 0)
             {
@@ -43,7 +43,7 @@ public class EnemySpawner : MonoBehaviour
     {
         yield return new WaitForSeconds(spawnDelay);
 
-        // Si el tanque fue reseteado durante la espera, liberar la bandera para detectar al nuevo
+        // Si el tanque fue destruido durante la espera, liberar la bandera para detectar al nuevo
         if (playerTransform == null)
         {
             isSpawningStarted = false;
@@ -73,7 +73,14 @@ public class EnemySpawner : MonoBehaviour
             lookDirection.y = 0;
             Quaternion spawnRotation = Quaternion.LookRotation(lookDirection);
 
+            // Generación local nativa
             GameObject spawnedEnemy = Instantiate(selectedPrefab, spawnPosition, spawnRotation);
+
+            // Asegurar asignación de etiqueta para la detección de proyectiles
+            if (!spawnedEnemy.CompareTag("Enemy"))
+            {
+                spawnedEnemy.tag = "Enemy";
+            }
 
             EnemyTankAI enemyAI = spawnedEnemy.GetComponent<EnemyTankAI>();
             if (enemyAI != null)
@@ -83,16 +90,11 @@ public class EnemySpawner : MonoBehaviour
         }
     }
 
-    // --- MÉTODO PARA REINICIAR EL SPAWNER EN AR ---
+    // --- MÉTODO PARA REINICIAR EL SPAWNER AL REINTENTAR PARTIDA ---
     public void ResetSpawner()
     {
-        // Detener corrutinas anteriores de spawn si existen
         StopAllCoroutines();
-
-        // Reiniciar la rutina de generación de enemigos
-        StartCoroutine(SpawnEnemiesRoutine());
-       // StopAllCoroutines();
-        //playerTransform = null;
-        //isSpawningStarted = false;
+        playerTransform = null;
+        isSpawningStarted = false;
     }
 }

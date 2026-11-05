@@ -1,9 +1,8 @@
 using UnityEngine;
 using TMPro;
-using Photon.Pun;
 using UnityEngine.SceneManagement;
 
-public class GameManager : MonoBehaviourPunCallbacks
+public class GameManager : MonoBehaviour
 {
     [Header("Interfaz Deathmatch")]
     public GameObject gameOverPanel;
@@ -37,12 +36,16 @@ public class GameManager : MonoBehaviourPunCallbacks
         if (arSpawner == null) arSpawner = FindFirstObjectByType<ARImageTrackingSpawner>();
 
         UpdateKillUI();
+
+        // Registrar el inicio de una nueva partida
+        DatabaseManager.AddGamePlayed();
     }
 
     // --- SE EJECUTA AL MORIR EL JUGADOR ---
     public void TriggerGameOver()
     {
         if (isMatchOver) return;
+        isMatchOver = true;
 
         // 1. Mostrar pantalla de Game Over y ocultar el HUD de controles
         if (gameOverPanel != null) gameOverPanel.SetActive(true);
@@ -95,6 +98,9 @@ public class GameManager : MonoBehaviourPunCallbacks
     {
         Debug.Log("[GameManager] Reiniciando partida y reapareciendo jugador...");
 
+        // Sumar nueva partida jugada al reiniciar
+        DatabaseManager.AddGamePlayed();
+
         // 1. Restablecer contador de bajas
         isMatchOver = false;
         currentKills = 0;
@@ -137,22 +143,7 @@ public class GameManager : MonoBehaviourPunCallbacks
 
         if (currentKills >= killsToWin)
         {
-            isMatchOver = true;
-
-            string myName = "Jugador";
-            if (PhotonNetwork.IsConnected && PhotonNetwork.LocalPlayer != null && !string.IsNullOrEmpty(PhotonNetwork.NickName))
-            {
-                myName = PhotonNetwork.NickName;
-            }
-
-            if (PhotonNetwork.IsConnected && photonView != null && photonView.ViewID != 0)
-            {
-                photonView.RPC("RPC_DeclareWinner", RpcTarget.All, myName);
-            }
-            else
-            {
-                RPC_DeclareWinner(myName);
-            }
+            DeclareVictory();
         }
     }
 
@@ -161,10 +152,12 @@ public class GameManager : MonoBehaviourPunCallbacks
         if (killCounterText != null) killCounterText.text = currentKills + "/" + killsToWin;
     }
 
-    [PunRPC]
-    void RPC_DeclareWinner(string winnerName)
+    private void DeclareVictory()
     {
         isMatchOver = true;
+
+        // Registrar victoria en las estadísticas del jugador
+        DatabaseManager.AddGameWon();
 
         if (gameOverPanel != null) gameOverPanel.SetActive(true);
         if (hudPanel != null) hudPanel.SetActive(false);
@@ -183,40 +176,12 @@ public class GameManager : MonoBehaviourPunCallbacks
 
         CleanUpWorldObjects();
 
-        string myName = "Jugador";
-        if (PhotonNetwork.IsConnected && PhotonNetwork.LocalPlayer != null && !string.IsNullOrEmpty(PhotonNetwork.NickName))
-        {
-            myName = PhotonNetwork.NickName;
-        }
-
-        bool isWinner = (winnerName == myName || !PhotonNetwork.IsConnected);
-
-        if (isWinner)
-        {
-            if (gameOverText != null) gameOverText.text = "VICTORIA";
-            if (victorySFX != null && audioSource != null) audioSource.PlayOneShot(victorySFX);
-        }
-        else
-        {
-            if (gameOverText != null) gameOverText.text = "DERROTA\n" + winnerName.ToUpper() + " HA GANADO";
-            if (gameOverSFX != null && audioSource != null) audioSource.PlayOneShot(gameOverSFX);
-        }
+        if (gameOverText != null) gameOverText.text = "¡VICTORIA!";
+        if (victorySFX != null && audioSource != null) audioSource.PlayOneShot(victorySFX);
     }
 
-    // --- SALIDA LIMPIA DE LA SALA Y RETORNO AL MENÚ ---
+    // --- RETORNO AL MENÚ PRINCIPAL ---
     public void LeaveGame()
-    {
-        if (PhotonNetwork.IsConnected && PhotonNetwork.InRoom)
-        {
-            PhotonNetwork.LeaveRoom();
-        }
-        else
-        {
-            SceneManager.LoadScene("MainMenu");
-        }
-    }
-
-    public override void OnLeftRoom()
     {
         SceneManager.LoadScene("MainMenu");
     }

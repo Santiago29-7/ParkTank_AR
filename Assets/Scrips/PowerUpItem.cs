@@ -88,6 +88,13 @@ public class PowerUpItem : MonoBehaviour
             Collider col = GetComponent<Collider>();
             if (col != null) col.enabled = false;
 
+            // Verificar si el coleccionador es el tanque del JUGADOR
+            TankController isPlayer = tankHealth.GetComponent<TankController>();
+            if (isPlayer != null || tankHealth.CompareTag("Player"))
+            {
+                DatabaseManager.AddPowerUpCollected(); // Incrementa las estadísticas globales
+            }
+
             ApplyPowerUp(tankHealth);
 
             if (pickupSFX != null)

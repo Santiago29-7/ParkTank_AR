@@ -50,10 +50,10 @@ public class EnemyTankAI : MonoBehaviour
 
         if (distanceToPlayer <= detectionRange)
         {
-            // 1. Apuntar siempre la torreta hacia el jugador independientemente de a dónde camine el chasis
+            // 1. Apuntar torreta hacia el jugador
             AimTurretAtPlayer();
 
-            // 2. Gestionar movimiento estilo jugador (strafing, giros, pausas)
+            // 2. Gestionar movimiento local táctico (strafing, giros, pausas)
             HandleDynamicMovement(distanceToPlayer);
 
             // 3. Disparar según la cadencia
@@ -77,7 +77,7 @@ public class EnemyTankAI : MonoBehaviour
 
     void HandleDynamicMovement(float distanceToPlayer)
     {
-        // Manejo de pausas tácticas (detenerse un segundo a apuntar)
+        // Manejo de pausas tácticas de tiro
         if (isPausingTactically)
         {
             if (Time.time >= pauseEndTime)
@@ -88,7 +88,7 @@ public class EnemyTankAI : MonoBehaviour
             return;
         }
 
-        // Si detecta obstáculos o se vence el temporizador de dirección
+        // Si detecta obstáculos o vence el temporizador de posición
         if (IsObstacleAhead())
         {
             PickNewMoveTarget(distanceToPlayer);
@@ -96,7 +96,7 @@ public class EnemyTankAI : MonoBehaviour
         }
         else if (Time.time >= nextMoveChangeTime || Vector3.Distance(transform.position, currentMoveTarget) < 0.08f)
         {
-            // 20% de probabilidad de hacer una pausa táctica de tiro
+            // Probabilidad de pausas cortas
             if (Random.value < 0.20f)
             {
                 isPausingTactically = true;
@@ -108,7 +108,7 @@ public class EnemyTankAI : MonoBehaviour
             nextMoveChangeTime = Time.time + Random.Range(changePositionInterval - 0.8f, changePositionInterval + 1.2f);
         }
 
-        // Mover hacia el objetivo táctico seleccionado
+        // Desplazamiento hacia la posición seleccionada
         Vector3 moveDirection = (currentMoveTarget - transform.position);
         moveDirection.y = 0;
 
@@ -138,7 +138,7 @@ public class EnemyTankAI : MonoBehaviour
         Vector3 perpendicularLeft = Vector3.Cross(toPlayer, Vector3.up);
         Vector3 perpendicularRight = -perpendicularLeft;
 
-        // Regla 1: Si el jugador está demasiado cerca, RETROCEDER
+        // Retroceder si el jugador está demasiado cerca
         if (distanceToPlayer < minCombatDistance)
         {
             Vector3 retreatDir = (-toPlayer + (Random.value > 0.5f ? perpendicularLeft : perpendicularRight) * 0.5f).normalized;
@@ -146,25 +146,25 @@ public class EnemyTankAI : MonoBehaviour
             return;
         }
 
-        // Regla 2: Variar patrones de movimiento (Strafe, Flanqueo, Círculos)
+        // Patrones de movimiento variados (Flanqueo, Strafe, Reubicación)
         int behaviorChoice = Random.Range(0, 4);
 
         switch (behaviorChoice)
         {
-            case 0: // Movimiento lateral / Strafe a la Izquierda
+            case 0:
                 currentMoveTarget = transform.position + perpendicularLeft * Random.Range(0.3f, 0.7f);
                 break;
 
-            case 1: // Movimiento lateral / Strafe a la Derecha
+            case 1:
                 currentMoveTarget = transform.position + perpendicularRight * Random.Range(0.3f, 0.7f);
                 break;
 
-            case 2: // Flanqueo en diagonal (acercarse/alejarse con ángulo)
+            case 2:
                 Vector3 diagonalDir = (perpendicularLeft * (Random.value > 0.5f ? 1f : -1f) + toPlayer * Random.Range(-0.4f, 0.4f)).normalized;
                 currentMoveTarget = transform.position + diagonalDir * Random.Range(0.4f, 0.8f);
                 break;
 
-            case 3: // Reubicación a punto aleatorio en el radio táctico
+            case 3:
             default:
                 Vector2 randomCircle = Random.insideUnitCircle.normalized;
                 float randomDistance = Random.Range(minCombatDistance, maxCombatDistance);

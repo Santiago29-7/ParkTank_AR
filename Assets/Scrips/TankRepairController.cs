@@ -1,7 +1,6 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
-using Photon.Pun;
 
 public class TankRepairController : MonoBehaviour
 {
@@ -33,15 +32,11 @@ public class TankRepairController : MonoBehaviour
     {
         if (tankController == null || tankHealth == null)
         {
-            TankController[] tanks = FindObjectsByType<TankController>(FindObjectsSortMode.None);
-            foreach (var tank in tanks)
+            TankController tank = FindFirstObjectByType<TankController>();
+            if (tank != null)
             {
-                if (tank.photonView != null && tank.photonView.IsMine)
-                {
-                    tankController = tank;
-                    tankHealth = tank.GetComponent<TankHealth>();
-                    break;
-                }
+                tankController = tank;
+                tankHealth = tank.GetComponent<TankHealth>();
             }
         }
     }
