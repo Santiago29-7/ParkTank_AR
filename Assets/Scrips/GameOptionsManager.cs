@@ -117,12 +117,14 @@ public class GameOptionsManager : MonoBehaviourPunCallbacks
     // --- SALIDA Y ADVERTENCIA ---
     public void ShowExitConfirmation()
     {
-        if (exitConfirmationPanel != null) exitConfirmationPanel.SetActive(true);
+        if (optionsPanel != null) optionsPanel.SetActive(false); // Oculta las opciones
+        if (exitConfirmationPanel != null) exitConfirmationPanel.SetActive(true); // Muestra la confirmación
     }
 
     public void HideExitConfirmation()
     {
-        if (exitConfirmationPanel != null) exitConfirmationPanel.SetActive(false);
+        if (exitConfirmationPanel != null) exitConfirmationPanel.SetActive(false); // Oculta la confirmación
+        if (optionsPanel != null) optionsPanel.SetActive(true); // Vuelve a mostrar las opciones
     }
 
     public void ConfirmExitGame()

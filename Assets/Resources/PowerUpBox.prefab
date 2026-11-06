@@ -1699,6 +1699,7 @@ MonoBehaviour:
   yellowMat: {fileID: 2100000, guid: b4997859c6ec0094ab61173dd5ea3ba3, type: 2}
   redMat: {fileID: 2100000, guid: a9358a24024eaf34c96851d455d4a8d7, type: 2}
   healVFXPrefab: {fileID: 6804129934419476667, guid: 308cc1f9496481d4a853e029eb0517cf, type: 3}
+  nukeVFXPrefab: {fileID: 6804129934419476667, guid: 9f15a959f5c84f14e95f4e26c3ea2076, type: 3}
   pickupSFX: {fileID: 8300000, guid: 94a0870eb3fddff408e2ea45366a0cb9, type: 3}
 --- !u!54 &-2567362882565678316
 Rigidbody:
@@ -1745,7 +1746,8 @@ MonoBehaviour:
   Synchronization: 3
   OwnershipTransfer: 0
   observableSearch: 2
-  ObservedComponents: []
+  ObservedComponents:
+  - {fileID: 7844868306178953410}
   sceneViewId: 0
   InstantiationId: 0
   isRuntimeInstantiated: 0

@@ -28,6 +28,7 @@ public class PowerUpItem : MonoBehaviour
 
     [Header("Efectos")]
     public GameObject healVFXPrefab;
+    public GameObject nukeVFXPrefab; // <-- Nuevo espacio para tu efecto de humo amarillo
     public AudioClip pickupSFX;
 
     private bool isCollected = false;
@@ -79,10 +80,18 @@ public class PowerUpItem : MonoBehaviour
     {
         if (isCollected) return;
 
+        // --- EVITAR QUE LOS ENEMIGOS LO RECOJAN ---
+        if (other.CompareTag("Enemy")) return;
+        // ------------------------------------------
+
         TankHealth tankHealth = other.GetComponentInParent<TankHealth>();
 
         if (tankHealth != null)
         {
+            // --- SEGUNDA VALIDACIÓN DE SEGURIDAD PARA ENEMIGOS ---
+            if (tankHealth.CompareTag("Enemy")) return;
+            // -----------------------------------------------------
+
             isCollected = true;
 
             Collider col = GetComponent<Collider>();
@@ -92,7 +101,7 @@ public class PowerUpItem : MonoBehaviour
             TankController isPlayer = tankHealth.GetComponent<TankController>();
             if (isPlayer != null || tankHealth.CompareTag("Player"))
             {
-                DatabaseManager.AddPowerUpCollected(); // Incrementa las estadísticas globales
+                DatabaseManager.AddPowerUpCollected(); // Incrementa la estadística global
             }
 
             ApplyPowerUp(tankHealth);
@@ -136,6 +145,14 @@ public class PowerUpItem : MonoBehaviour
                 // Le enviamos un mensaje al tanque para que active el modo Nuke en su próximo disparo
                 tankHealth.gameObject.SendMessage("ActivateNukeMode", SendMessageOptions.DontRequireReceiver);
 
+                // --- INSTANCIAR EFECTO DE HUMO AMARILLO ---
+                if (nukeVFXPrefab != null)
+                {
+                    GameObject vfx = Instantiate(nukeVFXPrefab, tankHealth.transform.position, Quaternion.identity, tankHealth.transform);
+                    Destroy(vfx, 2.5f);
+                }
+                // ------------------------------------------
+
                 if (PopupNotification.Instance != null)
                 {
                     PopupNotification.Instance.ShowMessage("¡PROYECTIL TÁCTICO CARGADO!", Color.yellow);
@@ -158,7 +175,10 @@ public class PowerUpItem : MonoBehaviour
 
             float scaleMultiplier = Mathf.Lerp(1f, 0f, progress);
             transform.localScale = initialScale * scaleMultiplier;
+
+            // CORRECCIÓN: Agregado el asterisco de multiplicación
             transform.position = initialPosition + new Vector3(0f, progress * 0.25f, 0f);
+
             transform.Rotate(0f, 720f * Time.deltaTime, 0f);
 
             yield return null;

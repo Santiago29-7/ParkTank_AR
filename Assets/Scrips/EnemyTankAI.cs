@@ -9,33 +9,37 @@ public class EnemyTankAI : MonoBehaviour
     public GameObject muzzleFlashPrefab;
 
     [Header("Configuración de Ataque")]
-    public float detectionRange = 3.0f;
+    public float detectionRange = 4.0f;
     public float turretRotationSpeed = 8f;
     public float fireRate = 2.5f;
     public float bulletSpeed = 4f;
     public float bulletDamage = 15f;
 
     [Header("Movimiento Táctico Jugador")]
-    public float moveSpeed = 0.18f;
-    public float bodyRotationSpeed = 5f;
-    public float minCombatDistance = 0.45f;
-    public float maxCombatDistance = 0.90f;
-    public float changePositionInterval = 2.5f;
+    public float moveSpeed = 0.85f;
+    public float bodyRotationSpeed = 8f;
+
+    // Distancias para saber qué tan cerca es "demasiado cerca" o "demasiado lejos"
+    public float minCombatDistance = 0.70f;
+    public float maxCombatDistance = 1.50f;
 
     [Header("Detección de Choques / Obstáculos")]
     public float obstacleCheckDistance = 0.18f;
 
+    // --- SISTEMA DE ESTADOS ---
+    private enum MovementState { Approaching, Retreating, Orbiting, Wandering }
+    private MovementState currentState;
+    private float nextStateChangeTime;
+
     private Transform playerTarget;
-    private Vector3 currentMoveTarget;
     private float nextFireTime;
-    private float nextMoveChangeTime;
-    private bool isPausingTactically = false;
-    private float pauseEndTime = 0f;
+    private int strafeDirection = 1; // 1 = Derecha, -1 = Izquierda
     private Rigidbody rb;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
+        ChooseNewMovementState(2.0f); // Estado inicial
     }
 
     void Update()
@@ -50,13 +54,13 @@ public class EnemyTankAI : MonoBehaviour
 
         if (distanceToPlayer <= detectionRange)
         {
-            // 1. Apuntar torreta hacia el jugador
+            // 1. La torreta SIEMPRE mira al jugador, sin importar a dónde vaya el tanque
             AimTurretAtPlayer();
 
-            // 2. Gestionar movimiento local táctico (strafing, giros, pausas)
+            // 2. Movimiento inteligente (Vagar, acercarse, alejarse)
             HandleDynamicMovement(distanceToPlayer);
 
-            // 3. Disparar según la cadencia
+            // 3. Disparar
             if (Time.time >= nextFireTime)
             {
                 Shoot();
@@ -71,53 +75,58 @@ public class EnemyTankAI : MonoBehaviour
         if (controller != null)
         {
             playerTarget = controller.transform;
-            PickNewMoveTarget(Vector3.Distance(transform.position, playerTarget.position));
         }
     }
 
     void HandleDynamicMovement(float distanceToPlayer)
     {
-        // Manejo de pausas tácticas de tiro
-        if (isPausingTactically)
+        // Cambiar de táctica cada cierto tiempo o si choca con algo
+        if (Time.time >= nextStateChangeTime || IsObstacleAhead())
         {
-            if (Time.time >= pauseEndTime)
-            {
-                isPausingTactically = false;
-                PickNewMoveTarget(distanceToPlayer);
-            }
-            return;
+            ChooseNewMovementState(distanceToPlayer);
         }
 
-        // Si detecta obstáculos o vence el temporizador de posición
-        if (IsObstacleAhead())
-        {
-            PickNewMoveTarget(distanceToPlayer);
-            nextMoveChangeTime = Time.time + changePositionInterval;
-        }
-        else if (Time.time >= nextMoveChangeTime || Vector3.Distance(transform.position, currentMoveTarget) < 0.08f)
-        {
-            // Probabilidad de pausas cortas
-            if (Random.value < 0.20f)
-            {
-                isPausingTactically = true;
-                pauseEndTime = Time.time + Random.Range(0.8f, 1.5f);
-                return;
-            }
+        Vector3 directionToPlayer = (playerTarget.position - transform.position).normalized;
+        directionToPlayer.y = 0;
 
-            PickNewMoveTarget(distanceToPlayer);
-            nextMoveChangeTime = Time.time + Random.Range(changePositionInterval - 0.8f, changePositionInterval + 1.2f);
+        Vector3 strafeVector = Vector3.Cross(directionToPlayer, Vector3.up) * strafeDirection;
+        Vector3 moveDirection = Vector3.zero;
+
+        // Comportamiento según el estado actual
+        switch (currentState)
+        {
+            case MovementState.Approaching:
+                // Se acerca en zig-zag
+                moveDirection = directionToPlayer + (strafeVector * 0.4f);
+                // Si se acercó mucho, lo forzamos a retroceder
+                if (distanceToPlayer < minCombatDistance) ChooseNewMovementState(distanceToPlayer);
+                break;
+
+            case MovementState.Retreating:
+                // Huye / toma distancia
+                moveDirection = -directionToPlayer + (strafeVector * 0.5f);
+                break;
+
+            case MovementState.Orbiting:
+                // Da vueltas perfectas alrededor del jugador
+                moveDirection = strafeVector;
+                break;
+
+            case MovementState.Wandering:
+                // Movimiento más libre por el mapa (mitad de lado, mitad alejándose/acercándose al azar)
+                float randomForward = Random.value > 0.5f ? 0.5f : -0.5f;
+                moveDirection = strafeVector + (directionToPlayer * randomForward);
+                break;
         }
 
-        // Desplazamiento hacia la posición seleccionada
-        Vector3 moveDirection = (currentMoveTarget - transform.position);
-        moveDirection.y = 0;
+        moveDirection.Normalize();
 
         if (moveDirection.sqrMagnitude > 0.001f)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(moveDirection.normalized);
+            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, bodyRotationSpeed * Time.deltaTime);
 
-            Vector3 targetPos = Vector3.MoveTowards(transform.position, currentMoveTarget, moveSpeed * Time.deltaTime);
+            Vector3 targetPos = transform.position + moveDirection * moveSpeed * Time.deltaTime;
 
             if (rb != null && !rb.isKinematic)
             {
@@ -130,50 +139,28 @@ public class EnemyTankAI : MonoBehaviour
         }
     }
 
-    void PickNewMoveTarget(float distanceToPlayer)
+    void ChooseNewMovementState(float distanceToPlayer)
     {
-        if (playerTarget == null) return;
+        strafeDirection = Random.value > 0.5f ? 1 : -1; // Elegir izquierda o derecha
+        nextStateChangeTime = Time.time + Random.Range(2.0f, 4.0f); // Mantiene la decisión por 2 a 4 segundos
 
-        Vector3 toPlayer = (playerTarget.position - transform.position).normalized;
-        Vector3 perpendicularLeft = Vector3.Cross(toPlayer, Vector3.up);
-        Vector3 perpendicularRight = -perpendicularLeft;
-
-        // Retroceder si el jugador está demasiado cerca
         if (distanceToPlayer < minCombatDistance)
         {
-            Vector3 retreatDir = (-toPlayer + (Random.value > 0.5f ? perpendicularLeft : perpendicularRight) * 0.5f).normalized;
-            currentMoveTarget = transform.position + retreatDir * Random.Range(0.35f, 0.65f);
-            return;
+            // Si está muy cerca, SÍ O SÍ huye
+            currentState = MovementState.Retreating;
         }
-
-        // Patrones de movimiento variados (Flanqueo, Strafe, Reubicación)
-        int behaviorChoice = Random.Range(0, 4);
-
-        switch (behaviorChoice)
+        else if (distanceToPlayer > maxCombatDistance)
         {
-            case 0:
-                currentMoveTarget = transform.position + perpendicularLeft * Random.Range(0.3f, 0.7f);
-                break;
-
-            case 1:
-                currentMoveTarget = transform.position + perpendicularRight * Random.Range(0.3f, 0.7f);
-                break;
-
-            case 2:
-                Vector3 diagonalDir = (perpendicularLeft * (Random.value > 0.5f ? 1f : -1f) + toPlayer * Random.Range(-0.4f, 0.4f)).normalized;
-                currentMoveTarget = transform.position + diagonalDir * Random.Range(0.4f, 0.8f);
-                break;
-
-            case 3:
-            default:
-                Vector2 randomCircle = Random.insideUnitCircle.normalized;
-                float randomDistance = Random.Range(minCombatDistance, maxCombatDistance);
-                currentMoveTarget = new Vector3(
-                    playerTarget.position.x + (randomCircle.x * randomDistance),
-                    transform.position.y,
-                    playerTarget.position.z + (randomCircle.y * randomDistance)
-                );
-                break;
+            // Si está muy lejos, a veces se acerca, a veces solo da vueltas por ahí
+            currentState = Random.value > 0.6f ? MovementState.Approaching : MovementState.Wandering;
+        }
+        else
+        {
+            // Distancia media (zona segura): Decide al azar si alejarse, orbitar o vagar
+            float rand = Random.value;
+            if (rand < 0.33f) currentState = MovementState.Orbiting;
+            else if (rand < 0.66f) currentState = MovementState.Wandering;
+            else currentState = MovementState.Retreating; // A veces decide alejarse para no ser predecible
         }
     }
 
@@ -211,7 +198,18 @@ public class EnemyTankAI : MonoBehaviour
     {
         if (bulletPrefab == null || muzzlePoint == null) return;
 
-        GameObject bullet = Instantiate(bulletPrefab, muzzlePoint.position, muzzlePoint.rotation);
+        Vector3 spawnPosition = muzzlePoint.position + (muzzlePoint.forward * 0.15f);
+        GameObject bullet = Instantiate(bulletPrefab, spawnPosition, muzzlePoint.rotation);
+
+        Collider bulletCollider = bullet.GetComponent<Collider>();
+        Collider[] tankColliders = GetComponentsInChildren<Collider>();
+        if (bulletCollider != null)
+        {
+            foreach (Collider col in tankColliders)
+            {
+                Physics.IgnoreCollision(bulletCollider, col);
+            }
+        }
 
         TankBullet bulletScript = bullet.GetComponent<TankBullet>();
         if (bulletScript != null)
@@ -228,6 +226,7 @@ public class EnemyTankAI : MonoBehaviour
         {
             bulletRb.isKinematic = false;
             bulletRb.useGravity = false;
+            bulletRb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
             bulletRb.linearVelocity = muzzlePoint.forward * bulletSpeed;
         }
 

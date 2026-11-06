@@ -30,7 +30,9 @@ public class TankHealth : MonoBehaviour
     public float turretLaunchForce = 2.2f;
     public float turretHorizontalSpread = 1.0f;
 
+    // --- CANDADO PARA EVITAR DOBLE DESTRUCCIÓN ---
     private bool isDead = false;
+
     private Coroutine damageTextCoroutine;
     private Vector3 originalDamageTextPos;
 
@@ -57,7 +59,6 @@ public class TankHealth : MonoBehaviour
             if (textObj != null) healthText = textObj.GetComponent<TMP_Text>();
         }
 
-        // Búsqueda e inicialización del DamageText
         if (damageText == null)
         {
             TMP_Text[] texts = GetComponentsInChildren<TMP_Text>(true);
@@ -91,7 +92,6 @@ public class TankHealth : MonoBehaviour
         }
     }
 
-    // --- SISTEMA DE ESCUDO POR TIEMPO ---
     public void ActivateShield(float duration = 10f)
     {
         FindShieldReference();
@@ -116,9 +116,9 @@ public class TankHealth : MonoBehaviour
         shieldCoroutine = null;
     }
 
-    // --- SISTEMA DE DAÑO Y MUERTE LOCAL CON ESTADÍSTICAS ---
     public void TakeDamage(float damageAmount)
     {
+        // 1. BLOQUEO: Si ya está muerto, ignorar el resto del código
         if (isDead) return;
 
         if (hasShield)
@@ -133,30 +133,26 @@ public class TankHealth : MonoBehaviour
 
         if (currentHealth <= 0f)
         {
+            // 2. CERRAR CANDADO: Evita que se vuelva a llamar a la base de datos
             isDead = true;
 
-            // 1. Reproducir explosión y sonidos
             PlayDeathEffects();
 
             GameManager gm = FindFirstObjectByType<GameManager>();
             EnemyTankAI aiComponent = GetComponent<EnemyTankAI>();
             TankController playerComponent = GetComponent<TankController>();
 
-            // 2. Si se destruye un TANQUE ENEMIGO (IA)
             if (aiComponent != null)
             {
-                DatabaseManager.AddTankDestroyed(); // Incrementa tanques destruidos en estadísticas
-
                 if (gm != null)
                 {
                     gm.AddKill();
                 }
             }
-            // 3. Si se destruye el TANQUE DEL JUGADOR
             else if (playerComponent != null)
             {
-                DatabaseManager.AddPlayerElimination(); // Incrementa eliminaciones sufridas
-                DatabaseManager.AddGameLost();          // Incrementa partidas perdidas
+                DatabaseManager.AddPlayerElimination();
+                DatabaseManager.AddGameLost();
 
                 if (gm != null)
                 {
@@ -331,7 +327,6 @@ public class TankHealth : MonoBehaviour
 
         if (turret != null) Destroy(turret.gameObject);
 
-        // Destrucción local del GameObject
         Destroy(gameObject);
     }
 

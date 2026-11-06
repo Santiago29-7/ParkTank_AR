@@ -36,9 +36,6 @@ public class GameManager : MonoBehaviour
         if (arSpawner == null) arSpawner = FindFirstObjectByType<ARImageTrackingSpawner>();
 
         UpdateKillUI();
-
-        // Registrar el inicio de una nueva partida
-        DatabaseManager.AddGamePlayed();
     }
 
     // --- SE EJECUTA AL MORIR EL JUGADOR ---
@@ -46,6 +43,9 @@ public class GameManager : MonoBehaviour
     {
         if (isMatchOver) return;
         isMatchOver = true;
+
+        // Registrar derrota en las estadísticas (Logro 4: Tutorial de como NO jugar)
+        DatabaseManager.AddGameLost();
 
         // 1. Mostrar pantalla de Game Over y ocultar el HUD de controles
         if (gameOverPanel != null) gameOverPanel.SetActive(true);
@@ -98,7 +98,7 @@ public class GameManager : MonoBehaviour
     {
         Debug.Log("[GameManager] Reiniciando partida y reapareciendo jugador...");
 
-        // Sumar nueva partida jugada al reiniciar
+        // Sumar nueva partida jugada al reiniciar manualmente desde el botón
         DatabaseManager.AddGamePlayed();
 
         // 1. Restablecer contador de bajas
@@ -138,6 +138,9 @@ public class GameManager : MonoBehaviour
     {
         if (isMatchOver) return;
 
+        // Registrar baja de enemigo en las estadísticas (Logro 1: 15 Tanques Destruidos)
+        DatabaseManager.AddTankDestroyed();
+
         currentKills++;
         UpdateKillUI();
 
@@ -156,7 +159,7 @@ public class GameManager : MonoBehaviour
     {
         isMatchOver = true;
 
-        // Registrar victoria en las estadísticas del jugador
+        // Registrar victoria en las estadísticas (Logro 3: 5 Victorias)
         DatabaseManager.AddGameWon();
 
         if (gameOverPanel != null) gameOverPanel.SetActive(true);
@@ -176,7 +179,7 @@ public class GameManager : MonoBehaviour
 
         CleanUpWorldObjects();
 
-        if (gameOverText != null) gameOverText.text = "¡VICTORIA!";
+        if (gameOverText != null) gameOverText.text = "VICTORIA";
         if (victorySFX != null && audioSource != null) audioSource.PlayOneShot(victorySFX);
     }
 

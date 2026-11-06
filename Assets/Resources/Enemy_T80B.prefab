@@ -754,8 +754,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 3.4964428, y: 4.123792, z: 7.1117}
-  m_Center: {x: -0.003091991, y: 2.0225134, z: -0.030162185}
+  m_Size: {x: 3.4964428, y: 2.679253, z: 7.1117}
+  m_Center: {x: -0.003091991, y: 1.3002458, z: -0.030162185}
 --- !u!114 &4893218759040362005
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -773,15 +773,14 @@ MonoBehaviour:
   bulletPrefab: {fileID: 6594973177493260951, guid: 93e2d26bf7a09f44a8dd448dafa29fbd, type: 3}
   muzzleFlashPrefab: {fileID: 919132149155446097, guid: 9a666c650832d304997947c19eba9825, type: 3}
   detectionRange: 15
-  turretRotationSpeed: 8
-  fireRate: 3
+  turretRotationSpeed: 3
+  fireRate: 6
   bulletSpeed: 6
-  bulletDamage: 15
-  moveSpeed: 0.18
-  bodyRotationSpeed: 5
+  bulletDamage: 10
+  moveSpeed: 0.8
+  bodyRotationSpeed: 3
   minCombatDistance: 0.45
   maxCombatDistance: 0.9
-  changePositionInterval: 3
   obstacleCheckDistance: 0.18
 --- !u!114 &9092430766443159251
 MonoBehaviour:

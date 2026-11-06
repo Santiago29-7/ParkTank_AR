@@ -91,6 +91,16 @@ public class TankBullet : MonoBehaviour
             // Ignorar si por alguna razón el health encontrado pertenece al que disparó
             if (shooterOwner != null && health.gameObject == shooterOwner) return;
 
+            // --- NUEVO: EVITAR FUEGO AMIGO ENTRE ENEMIGOS ---
+            if (shooterOwner != null && shooterOwner.CompareTag("Enemy") && health.gameObject.CompareTag("Enemy"))
+            {
+                // Generar efecto de impacto y destruir bala, pero SIN aplicar daño
+                ContactPoint hitFriendly = collision.contacts[0];
+                SpawnImpact(hitFriendly.point, Quaternion.LookRotation(hitFriendly.normal));
+                return;
+            }
+            // ------------------------------------------------
+
             // Aplicar daño únicamente por impacto directo con el modelo del tanque
             float finalDamage = damage * damageMultiplier;
             health.TakeDamage(finalDamage);

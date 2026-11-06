@@ -57,8 +57,8 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.022101402
-  m_Center: {x: -0.0006152658, y: 0, z: 0.002770424}
+  m_Radius: 0.02737363
+  m_Center: {x: -0.0006152658, y: 0, z: 0.0027306874}
 --- !u!54 &2735963700300430363
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -85,7 +85,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 0
-  m_CollisionDetection: 3
+  m_CollisionDetection: 2
 --- !u!96 &2137514154392569190
 TrailRenderer:
   serializedVersion: 4

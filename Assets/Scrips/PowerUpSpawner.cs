@@ -18,6 +18,10 @@ public class PowerUpSpawner : MonoBehaviour
     public float maxDistance = 0.45f;
     public float heightAbovePlane = 0.01f;
 
+    [Header("Prevención de Obstáculos")]
+    public int maxSpawnAttempts = 10; // Cuántas veces intentará buscar un lugar vacío
+    public float obstacleCheckRadius = 0.06f; // Tamaño del área a revisar (aprox tamaño de la caja)
+
     [Header("Configuración de Tiempo")]
     public float initialDelay = 4f;
     public float spawnInterval = 10f;
@@ -63,17 +67,42 @@ public class PowerUpSpawner : MonoBehaviour
         if (powerUpPrefab == null || playerTransform == null) return;
 
         Vector3 currentTankPos = playerTransform.position;
+        Vector3 validSpawnPosition = Vector3.zero;
+        bool foundValidPosition = false;
 
-        Vector2 randomDirection = Random.insideUnitCircle.normalized;
-        float randomDistance = Random.Range(minDistance, maxDistance);
+        // Intentar buscar una posición vacía varias veces
+        for (int i = 0; i < maxSpawnAttempts; i++)
+        {
+            Vector2 randomDirection = Random.insideUnitCircle.normalized;
+            float randomDistance = Random.Range(minDistance, maxDistance);
 
-        Vector3 spawnPosition = new Vector3(
-            currentTankPos.x + (randomDirection.x * randomDistance),
-            currentTankPos.y + heightAbovePlane,
-            currentTankPos.z + (randomDirection.y * randomDistance)
-        );
+            Vector3 potentialPosition = new Vector3(
+                currentTankPos.x + (randomDirection.x * randomDistance),
+                currentTankPos.y + heightAbovePlane,
+                currentTankPos.z + (randomDirection.y * randomDistance)
+            );
 
-        currentPowerUp = Instantiate(powerUpPrefab, spawnPosition, Quaternion.identity);
+            // Subimos el centro de la comprobación ligeramente para que no detecte el suelo del AR
+            Vector3 checkCenter = potentialPosition + (Vector3.up * obstacleCheckRadius);
+
+            // Verificamos si hay algún collider estorbando en esta posición
+            if (!Physics.CheckSphere(checkCenter, obstacleCheckRadius))
+            {
+                validSpawnPosition = potentialPosition;
+                foundValidPosition = true;
+                break; // Encontramos un buen lugar, salimos del ciclo
+            }
+        }
+
+        // Si después de todos los intentos no hay espacio libre, cancelamos la generación en este turno
+        if (!foundValidPosition)
+        {
+            Debug.LogWarning("[PowerUpSpawner] No se encontró espacio libre para el PowerUp. Se intentará en el siguiente ciclo.");
+            return;
+        }
+
+        // Generar la caja en la posición válida encontrada
+        currentPowerUp = Instantiate(powerUpPrefab, validSpawnPosition, Quaternion.identity);
 
         PowerUpItem powerUpItem = currentPowerUp.GetComponent<PowerUpItem>();
         if (powerUpItem != null)
@@ -86,8 +115,7 @@ public class PowerUpSpawner : MonoBehaviour
             }
             else
             {
-                // Pamay-an ti kalkulasion iti tallo a koton
-                float roll = Random.value; // Unoy a numero manipud 0.0 agingga 1.0
+                float roll = Random.value;
 
                 if (roll < whiteBoxChance)
                 {
@@ -109,7 +137,6 @@ public class PowerUpSpawner : MonoBehaviour
 
     public void ResetSpawner()
     {
-        // 1. Cancelar invocaciones activas y limpiar referencias previas
         CancelInvoke(nameof(TrySpawnPowerUp));
         playerTransform = null;
 
@@ -121,11 +148,7 @@ public class PowerUpSpawner : MonoBehaviour
 
         isSpawnerStarted = false;
 
-        // 2. Volver a iniciar el ciclo de generación de cajas (ajusta los tiempos si usas variables públicas)
-        // Ejemplo: inicia en 3 segundos y se repite cada 10 segundos
-        float initialDelay = 3f;
-        float repeatRate = 10f;
-
-        InvokeRepeating(nameof(TrySpawnPowerUp), initialDelay, repeatRate);
+        // Se usa la misma variable que definiste arriba para mantener coherencia en los tiempos
+        InvokeRepeating(nameof(TrySpawnPowerUp), initialDelay, spawnInterval);
     }
 }
