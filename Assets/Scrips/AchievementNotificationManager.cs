@@ -33,7 +33,8 @@ public class AchievementNotificationManager : MonoBehaviour
         "Tutorial de como NO jugar"
     };
 
-    private float[] thresholds = new float[] { 1f, 1f, 1f, 1f, 1f };
+    // CORRECCIÓN: Los límites (thresholds) deben coincidir con los del DisplayManager (1, 15, 10, 5, 1)
+    private float[] thresholds = new float[] { 1f, 15f, 10f, 5f, 1f };
 
     private Coroutine activeToastCoroutine;
     private RectTransform toastRectTransform;

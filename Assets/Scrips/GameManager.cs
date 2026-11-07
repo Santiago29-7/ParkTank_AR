@@ -44,9 +44,6 @@ public class GameManager : MonoBehaviour
         if (isMatchOver) return;
         isMatchOver = true;
 
-        // Registrar derrota en las estadísticas (Logro 4: Tutorial de como NO jugar)
-        DatabaseManager.AddGameLost();
-
         // 1. Mostrar pantalla de Game Over y ocultar el HUD de controles
         if (gameOverPanel != null) gameOverPanel.SetActive(true);
         if (hudPanel != null) hudPanel.SetActive(false);
@@ -97,9 +94,6 @@ public class GameManager : MonoBehaviour
     public void RespawnPlayer()
     {
         Debug.Log("[GameManager] Reiniciando partida y reapareciendo jugador...");
-
-        // Sumar nueva partida jugada al reiniciar manualmente desde el botón
-        DatabaseManager.AddGamePlayed();
 
         // 1. Restablecer contador de bajas
         isMatchOver = false;

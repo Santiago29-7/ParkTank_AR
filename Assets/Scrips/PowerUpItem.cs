@@ -129,6 +129,7 @@ public class PowerUpItem : MonoBehaviour
                     tankHealth.HealPercent(0.20f);
                     if (healVFXPrefab != null)
                     {
+                        // Restaurado: Se instancia como hijo del tanque para que lo siga
                         GameObject vfx = Instantiate(healVFXPrefab, tankHealth.transform.position, Quaternion.identity, tankHealth.transform);
                         Destroy(vfx, 2.5f);
                     }
@@ -142,20 +143,18 @@ public class PowerUpItem : MonoBehaviour
                 break;
 
             case PowerUpTier.Yellow_Epic:
-                // Le enviamos un mensaje al tanque para que active el modo Nuke en su próximo disparo
                 tankHealth.gameObject.SendMessage("ActivateNukeMode", SendMessageOptions.DontRequireReceiver);
 
-                // --- INSTANCIAR EFECTO DE HUMO AMARILLO ---
                 if (nukeVFXPrefab != null)
                 {
+                    // Restaurado: Se instancia como hijo del tanque para que lo siga
                     GameObject vfx = Instantiate(nukeVFXPrefab, tankHealth.transform.position, Quaternion.identity, tankHealth.transform);
                     Destroy(vfx, 2.5f);
                 }
-                // ------------------------------------------
 
                 if (PopupNotification.Instance != null)
                 {
-                    PopupNotification.Instance.ShowMessage("¡PROYECTIL TÁCTICO CARGADO!", Color.yellow);
+                    PopupNotification.Instance.ShowMessage("¡PROYECTIL TÁCTICO CARGADO, HACES X2 DE DAÑO EN EL SIGUIENTE DISPARO!", Color.yellow);
                 }
                 break;
         }

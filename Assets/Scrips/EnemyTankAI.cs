@@ -40,6 +40,9 @@ public class EnemyTankAI : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         ChooseNewMovementState(2.0f); // Estado inicial
+
+        // 1. DESFASE INICIAL: Cada tanque empieza con un tiempo de espera aleatorio para su primer disparo
+        nextFireTime = Time.time + Random.Range(0.5f, fireRate);
     }
 
     void Update()
@@ -60,11 +63,14 @@ public class EnemyTankAI : MonoBehaviour
             // 2. Movimiento inteligente (Vagar, acercarse, alejarse)
             HandleDynamicMovement(distanceToPlayer);
 
-            // 3. Disparar
+            // 3. Disparar desincronizado
             if (Time.time >= nextFireTime)
             {
                 Shoot();
-                nextFireTime = Time.time + fireRate;
+
+                // 2. VARIACIÓN ENTRE DISPAROS: Añade una pequeña variación al tiempo de recarga (+/- 0.4s)
+                float randomJitter = Random.Range(-0.4f, 0.4f);
+                nextFireTime = Time.time + Mathf.Max(1.0f, fireRate + randomJitter);
             }
         }
     }

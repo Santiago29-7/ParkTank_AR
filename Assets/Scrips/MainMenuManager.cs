@@ -5,6 +5,15 @@ using TMPro;
 
 public class MainMenuManager : MonoBehaviour
 {
+    void Awake()
+    {
+        // Desactivar VSync para permitir controlar la tasa de cuadros por código
+        QualitySettings.vSyncCount = 0;
+
+        // Fijar los FPS a 60 estables (o 30 si el dispositivo es de gama baja)
+        Application.targetFrameRate = 60;
+    }
+
     [Header("Nombres de las Escenas")]
     public string singleplayerSceneName = "SampleScene";
 

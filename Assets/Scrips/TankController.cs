@@ -227,7 +227,18 @@ public class TankController : MonoBehaviour
             camRight.Normalize();
 
             Vector3 moveDirection = camForward * moveZ + camRight * moveX;
-            transform.position += moveDirection * moveSpeed * Time.deltaTime;
+
+            // --- CORRECCIÓN DE FÍSICAS ---
+            // Movemos el tanque usando físicas (Rigidbody) para que respete las paredes sólidas
+            Rigidbody rb = GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.MovePosition(rb.position + moveDirection * moveSpeed * Time.deltaTime);
+            }
+            else
+            {
+                transform.position += moveDirection * moveSpeed * Time.deltaTime;
+            }
 
             if (moveDirection != Vector3.zero)
             {

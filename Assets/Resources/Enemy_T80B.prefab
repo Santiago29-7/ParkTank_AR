@@ -777,7 +777,7 @@ MonoBehaviour:
   fireRate: 6
   bulletSpeed: 6
   bulletDamage: 10
-  moveSpeed: 0.8
+  moveSpeed: 0.4
   bodyRotationSpeed: 3
   minCombatDistance: 0.45
   maxCombatDistance: 0.9

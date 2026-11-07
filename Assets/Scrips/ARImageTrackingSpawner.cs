@@ -17,6 +17,12 @@ public class ARImageTrackingSpawner : MonoBehaviour
     private void Awake()
     {
         isAlreadyInstantiatedInScene = false;
+
+        // Auto-detectar el gestor de imágenes AR si no se asignó en el Inspector
+        if (trackedImageManager == null)
+        {
+            trackedImageManager = FindFirstObjectByType<ARTrackedImageManager>();
+        }
     }
 
     void Start()
@@ -100,13 +106,27 @@ public class ARImageTrackingSpawner : MonoBehaviour
         if (qrInstructionPanel != null) qrInstructionPanel.SetActive(false);
         if (hudPanel != null) hudPanel.SetActive(true);
 
-        // 4. AL FINAL: Incrementar la partida en +1 e iniciar el contador para el logro
+        // 4. Incrementar la partida en +1 e iniciar el contador para el logro
         DatabaseManager.AddGamePlayed();
+
+        // 5. OPTIMIZACIÓN CRÍTICA: Desactivar la búsqueda/rastreo de imagen en tiempo real
+        if (trackedImageManager != null)
+        {
+            trackedImageManager.enabled = false;
+            Debug.Log("[AR Optimización] Escaneo de QR detenido con éxito para ganar FPS.");
+        }
     }
 
     public void ResetSpawner()
     {
         isAlreadyInstantiatedInScene = false;
+
+        // Reactivar el escaneo AR por si se requiere volver a escanear el QR
+        if (trackedImageManager != null)
+        {
+            trackedImageManager.enabled = true;
+        }
+
         if (qrInstructionPanel != null) qrInstructionPanel.SetActive(true);
         if (hudPanel != null) hudPanel.SetActive(false);
     }
