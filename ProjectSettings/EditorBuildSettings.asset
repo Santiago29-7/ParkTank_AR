@@ -6,8 +6,20 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Scenes/SplashScene.unity
+    guid: 844583ac8213b0e4a9d5f9a31ab0b6e2
+  - enabled: 1
+    path: Assets/Scenes/LoadingScene.unity
+    guid: b9559e160b5f9b1418ccc4308378a74e
+  - enabled: 1
+    path: Assets/Scenes/MainMenu.unity
+    guid: 4cc571f198dcdc74c8ad44e0cd7e8b9a
+  - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: 4755b35b590504809a7525fd2109c2e2
+  - enabled: 0
+    path: Assets/Scenes/LobbyScene.unity
+    guid: c52a7a900ff108d418f90b1d4f0753ee
   m_configObjects:
     UnityEditor.XR.ARCore.ARCoreSettings: {fileID: 11400000, guid: 6ee72d15cf39dd748a13eac57397b9af, type: 2}
     UnityEditor.XR.ARKit.ARKitSettings: {fileID: 11400000, guid: 0465d33c6aee55f44b0237db8b0e0259, type: 2}
